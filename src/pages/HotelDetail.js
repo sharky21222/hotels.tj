@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { hotels } from '../data/hotels';
 import BookingModal from '../components/BookingModal';
@@ -27,28 +27,28 @@ export default function HotelDetail() {
 
   // Модалка бронирования
   const [modal, setModal] = useState({ open: false, roomType: '', total: 0 });
-
   const [imgIdx, setImgIdx] = useState(0);
+
   const today = new Date().toISOString().slice(0, 10);
-  const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
+  const tmr = new Date(); 
+  tmr.setDate(tmr.getDate() + 1);
+
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(tmr.toISOString().slice(0, 10));
   const [guests, setGuests] = useState(1);
 
-  // nights — ВЫНОСИШЬ ВНЕ функции handleBook!
+  // nights — вынесен из функции handleBook
   const nights = useMemo(() => {
     const d1 = new Date(start), d2 = new Date(end);
     const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
     return diff > 0 ? diff : 1;
   }, [start, end]);
 
-  // handleBook — ФУНКЦИЯ бронирования, которую ты отдаёшь BookingModal
+  // handleBook — ФУНКЦИЯ бронирования
   async function handleBook(data) {
     try {
-      // Здесь можно отправить данные в базу или на сервер
-      // Например: await addDoc(collection(db, "bookings"), data)
       alert(
-        `Бронирование подтверждено!\n\n` +
+        `Бронирование подтверждено!\n` +
         `Отель: ${hotel.name}\n` +
         `Тип номера: ${modal.roomType}\n` +
         `Сумма: ${modal.total}$\n` +
@@ -77,14 +77,24 @@ export default function HotelDetail() {
     }, 50);
   }
 
+  // ✅ Скроллим вверх при загрузке страницы
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white flex flex-col font-sans">
-
       {/* Кнопка "Назад" */}
-      
+      <button
+        onClick={() => navigate(-1)}
+        className="fixed top-5 left-5 z-50 bg-yellow-400/90 hover:bg-yellow-300 active:scale-90 transition-all text-black font-bold px-6 py-2 rounded-full shadow-2xl text-xl"
+        style={{ minWidth: 100, boxShadow: '0 2px 24px 2px #ffbb3366', letterSpacing: 2 }}
+      >
+        <span className="inline-block text-2xl">←</span>
+        <span className="ml-3 font-bold text-lg">Назад</span>
+      </button>
 
       <div className="flex flex-col gap-8 max-w-5xl mx-auto px-4 py-10 md:py-16 w-full">
-
         {/* Кнопка скролла к номерам */}
         <div className="flex items-center justify-between mb-3">
           <Link to="/" className="md:hidden text-yellow-400 hover:underline text-base transition-colors">← На главную</Link>
@@ -103,28 +113,27 @@ export default function HotelDetail() {
             src={hotel.images?.[imgIdx] || hotel.images?.[0]}
             alt={hotel.name}
             className="absolute w-full h-full object-cover object-center transition-all duration-500"
-            style={{ zIndex: 0 }}
             draggable={false}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
 
+          {/* Навигация по фото */}
           {hotel.images && hotel.images.length > 1 && (
             <>
               <button
                 onClick={() => setImgIdx(i => i === 0 ? hotel.images.length - 1 : i - 1)}
                 className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 hover:text-black text-white rounded-full w-12 h-12 flex items-center justify-center text-3xl shadow transition-all duration-200 active:scale-90"
-                style={{ zIndex: 15 }}
                 aria-label="Назад"
               >‹</button>
               <button
                 onClick={() => setImgIdx(i => i === hotel.images.length - 1 ? 0 : i + 1)}
                 className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 hover:text-black text-white rounded-full w-12 h-12 flex items-center justify-center text-3xl shadow transition-all duration-200 active:scale-90"
-                style={{ zIndex: 15 }}
                 aria-label="Вперёд"
               >›</button>
             </>
           )}
 
+          {/* Превью фото */}
           {hotel.images && hotel.images.length > 1 && (
             <div className="absolute left-6 bottom-6 flex gap-3 z-20">
               {hotel.images.map((src, idx) => (
@@ -144,6 +153,7 @@ export default function HotelDetail() {
             </div>
           )}
 
+          {/* Лейбл отеля */}
           {hotel.label && (
             <span className="absolute top-5 left-5 px-5 py-1 bg-pink-600/90 rounded-full font-bold text-sm uppercase shadow-lg">
               {hotel.label}
@@ -223,7 +233,6 @@ export default function HotelDetail() {
                   className="rounded-2xl bg-white/10 shadow-xl flex flex-col overflow-hidden group hover:-translate-y-2 hover:shadow-yellow-300/50 transition-transform duration-300"
                   style={{
                     minHeight: 330,
-                    position: 'relative',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between'
@@ -256,7 +265,7 @@ export default function HotelDetail() {
           </div>
         </section>
 
-        {/* Раздел отзывов */}
+        {/* Отзывы */}
         {hotel.reviewsList && hotel.reviewsList.length > 0 && (
           <section className="mt-12">
             <h2 className="text-2xl font-extrabold text-yellow-400 mb-4">Отзывы гостей</h2>
@@ -273,19 +282,7 @@ export default function HotelDetail() {
             </div>
           </section>
         )}
-
       </div>
-<button
-  onClick={() => navigate(-1)}
-  className="z-50 bg-yellow-400/90 hover:bg-yellow-300 active:scale-90 transition-all text-black font-bold rounded-full shadow-2xl text-xl
-    fixed top-5 left-5
-    sm:top-5 sm:left-5
-    max-sm:static max-sm:mt-3 max-sm:mb-3 max-sm:ml-0 max-sm:w-fit max-sm:px-4 max-sm:py-1 max-sm:text-base max-sm:rounded-lg max-sm:shadow-none"
-  style={{ minWidth: 100, boxShadow: '0 2px 24px 2px #ffbb3366', letterSpacing:2 }}
->
-     <span className="inline-block text-2xl">←</span>
-        <span className="ml-3 font-bold text-lg">Назад</span>
-</button>
 
       {/* Модальное окно бронирования */}
       <BookingModal
