@@ -1,7 +1,7 @@
 // src/data/hotels.js
 import firuz1 from '../assets/hotel-firuz-1.jpg';
 import firuz2 from '../assets/hotel-firuz-2.jpg';
-import heson from '../assets/heson.jpg';
+// import heson from '../assets/heson.jpg';   // <-- УДАЛИ ЭТУ СТРОКУ
 
 export const hotels = [
   {
