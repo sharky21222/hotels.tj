@@ -81,14 +81,7 @@ export default function HotelDetail() {
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white flex flex-col font-sans">
 
       {/* Кнопка "Назад" */}
-      <button
-        onClick={() => navigate(-1)}
-        className="fixed top-5 left-5 z-50 bg-yellow-400/90 hover:bg-yellow-300 hover:-translate-x-1 active:scale-90 transition-all text-black font-bold px-6 py-2 rounded-full shadow-2xl text-xl"
-        style={{ minWidth: 100, boxShadow: '0 2px 24px 2px #ffbb3366', letterSpacing:2 }}
-      >
-        <span className="inline-block text-2xl">←</span>
-        <span className="ml-3 font-bold text-lg">Назад</span>
-      </button>
+      
 
       <div className="flex flex-col gap-8 max-w-5xl mx-auto px-4 py-10 md:py-16 w-full">
 
@@ -281,11 +274,18 @@ export default function HotelDetail() {
           </section>
         )}
 
-        {/* Футер */}
-        <footer className="mt-20 text-center text-gray-500 text-sm opacity-70 select-none">
-          © 2025 Ниязов Амир. Лучшие отели Таджикистана..
-        </footer>
       </div>
+<button
+  onClick={() => navigate(-1)}
+  className="z-50 bg-yellow-400/90 hover:bg-yellow-300 active:scale-90 transition-all text-black font-bold rounded-full shadow-2xl text-xl
+    fixed top-5 left-5
+    sm:top-5 sm:left-5
+    max-sm:static max-sm:mt-3 max-sm:mb-3 max-sm:ml-0 max-sm:w-fit max-sm:px-4 max-sm:py-1 max-sm:text-base max-sm:rounded-lg max-sm:shadow-none"
+  style={{ minWidth: 100, boxShadow: '0 2px 24px 2px #ffbb3366', letterSpacing:2 }}
+>
+     <span className="inline-block text-2xl">←</span>
+        <span className="ml-3 font-bold text-lg">Назад</span>
+</button>
 
       {/* Модальное окно бронирования */}
       <BookingModal
