@@ -1,0 +1,22 @@
+.hotel-card {
+  background:#fff; border-radius:8px;
+  box-shadow:0 2px 8px rgba(0,0,0,0.1);
+  overflow:hidden; transition:.3s;
+}
+.hotel-card:hover {
+  transform:translateY(-5px);
+  box-shadow:0 5px 15px rgba(0,0,0,0.2);
+}
+.hotel-card img {
+  width:100%; height:200px; object-fit:cover;
+}
+.info {
+  padding:1rem;
+}
+.info h3 { margin-bottom:.5rem; }
+.info p { font-size:.9rem; color:#555; margin-bottom:1rem; }
+.btn {
+  background:#00457C; color:#fff;
+  padding:.5rem 1rem; border-radius:4px;
+}
+.btn:hover { background:#003150; }

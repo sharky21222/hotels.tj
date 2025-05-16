@@ -1,0 +1,16 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #2F3EB1;
+  color: #fff;
+  padding: 0.5rem 2rem;
+  font-size: 0.9rem;
+}
+.header .lang { cursor: pointer; }
+.header-right span { margin-left: 1.5rem; }
+.logo {
+  color: #fff;
+  font-size: 1.8rem;
+  font-weight: bold;
+}

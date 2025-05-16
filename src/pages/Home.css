@@ -1,0 +1,21 @@
+.home-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+}
+.breadcrumbs {
+  color: #666;
+  margin-bottom: 1rem;
+}
+.breadcrumbs a {
+  color: #2F3EB1;
+  text-decoration: none;
+}
+.breadcrumbs span {
+  font-weight: bold;
+}
+.hotel-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill,minmax(300px,1fr));
+  gap: 1.5rem;
+}
