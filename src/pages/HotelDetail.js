@@ -10,14 +10,14 @@ function copyToClipboard(str) {
 }
 
 const featuresList = [
-  { key: 'wifi',        label: 'Бесплатный Wi-Fi',       icon: '📶' },
-  { key: 'breakfast',   label: 'Завтрак включён',        icon: '🍳' },
-  { key: 'parking',     label: 'Бесплатная парковка',    icon: '🅿️' },
-  { key: 'bar',         label: 'Бар',                    icon: '🍸' },
-  { key: 'restaurant',  label: 'Ресторан',               icon: '🍽️' },
-  { key: 'fitness',     label: 'Фитнес-центр',           icon: '🏋️' },
-  { key: 'spa',         label: 'Спа',                    icon: '💆' },
-  { key: 'pool',        label: 'Бассейн',                icon: '🏊' },
+  { key: 'wifi',      label: 'Бесплатный Wi-Fi',    icon: '📶' },
+  { key: 'breakfast', label: 'Завтрак включён',     icon: '🍳' },
+  { key: 'parking',   label: 'Бесплатная парковка',  icon: '🅿️' },
+  { key: 'bar',       label: 'Бар',                 icon: '🍸' },
+  { key: 'restaurant',label: 'Ресторан',            icon: '🍽️' },
+  { key: 'fitness',   label: 'Фитнес-центр',        icon: '🏋️' },
+  { key: 'spa',       label: 'Спа',                 icon: '💆' },
+  { key: 'pool',      label: 'Бассейн',             icon: '🏊' },
 ];
 
 export default function HotelDetail() {
@@ -36,14 +36,14 @@ export default function HotelDetail() {
   const [end, setEnd] = useState(tmr.toISOString().slice(0, 10));
   const [guests, setGuests] = useState(1);
 
-  // количество ночей
+  // Количество ночей
   const nights = useMemo(() => {
     const d1 = new Date(start), d2 = new Date(end);
     const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
     return diff > 0 ? diff : 1;
   }, [start, end]);
 
-  // функция бронирования
+  // Функция бронирования
   async function handleBook(data) {
     try {
       alert(
@@ -76,25 +76,52 @@ export default function HotelDetail() {
     }, 50);
   }
 
+  // Средний рейтинг
+  const avgRating = hotel.reviewsList?.length
+    ? (hotel.reviewsList.reduce((sum, r) => sum + r.rating, 0) / hotel.reviewsList.length).toFixed(1)
+    : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white flex flex-col font-sans">
 
-      {/* Кнопка "Назад" */}
+      {/* Фиксированная кнопка Назад только на планшетах и десктопе */}
       <button
         onClick={() => navigate(-1)}
-        className="fixed top-4 left-4 z-50 bg-yellow-400/90 hover:bg-yellow-300 hover:-translate-x-1 active:scale-90 transition-all text-black font-bold px-4 py-2 sm:px-6 sm:py-3 rounded-full shadow-2xl text-lg sm:text-xl"
+        className="hidden md:flex fixed top-4 left-4 z-50 bg-yellow-400/90 hover:bg-yellow-300 hover:-translate-x-1 active:scale-90 transition-all text-black font-bold px-4 py-2 rounded-full shadow-2xl text-lg"
       >
-        <span className="inline-block text-xl sm:text-2xl">←</span>
-        <span className="ml-2 sm:ml-3 font-bold text-md sm:text-lg">Назад</span>
+        ← Назад
       </button>
 
-      <div className="flex flex-col gap-6 sm:gap-8 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8 sm:py-10 w-full">
+      <div className="flex flex-col gap-6 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8 w-full">
+
+        {/* Вставка кнопки Назад для мобильных */}
+        <div className="md:hidden mb-4">
+          <button
+            onClick={() => navigate(-1)}
+            className="flex items-center text-yellow-400 font-bold text-lg"
+          >
+            ← Назад
+          </button>
+        </div>
+
+        {/* Заголовок */}
+        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-400">{hotel.name}</h1>
+
+        {/* Средний рейтинг */}
+        {avgRating && (
+          <div className="flex items-center gap-1 mt-2 text-sm">
+            {Array.from({ length: Math.round(avgRating) }).map((_, i) => (
+              <span key={i} className="text-yellow-400">★</span>
+            ))}
+            <span className="ml-2">({avgRating})</span>
+            <span className="ml-2 text-white/80">{hotel.reviewsList.length} отзывов</span>
+          </div>
+        )}
 
         {/* Кнопка скролла к номерам */}
-        <div className="flex items-center justify-between mb-2 sm:mb-4">
-          <Link to="/" className="md:hidden text-yellow-400 hover:underline text-sm sm:text-base transition-colors">← На главную</Link>
+        <div className="flex justify-end mb-4">
           <button
-            className="ml-auto px-4 py-2 sm:px-6 sm:py-3 bg-yellow-400/90 hover:bg-yellow-500 active:scale-95 rounded-xl font-bold shadow-lg transition-all text-black text-sm sm:text-base"
+            className="px-4 py-2 bg-yellow-400/90 hover:bg-yellow-500 active:scale-95 rounded-xl font-bold shadow-lg transition-all text-black text-sm sm:text-base"
             onClick={scrollToRooms}
           >
             Посмотреть номера ↓
@@ -102,7 +129,7 @@ export default function HotelDetail() {
         </div>
 
         {/* Фото-слайдер */}
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl h-48 sm:h-64 md:h-80 lg:h-[420px] mb-6 sm:mb-8 flex items-end select-none">
+        <div className="relative rounded-2xl overflow-hidden shadow-2xl h-48 sm:h-64 md:h-80 lg:h-[420px] mb-6 flex items-end select-none">
           <img
             src={hotel.images?.[imgIdx] || hotel.images?.[0]}
             alt={hotel.name}
@@ -115,12 +142,12 @@ export default function HotelDetail() {
             <>
               <button
                 onClick={() => setImgIdx(i => i === 0 ? hotel.images.length - 1 : i - 1)}
-                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 hover:text-black text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl sm:text-2xl shadow transition-all duration-200 active:scale-90"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl transition-all duration-200 active:scale-90"
                 aria-label="Назад"
               >‹</button>
               <button
                 onClick={() => setImgIdx(i => i === hotel.images.length - 1 ? 0 : i + 1)}
-                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 hover:text-black text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl sm:text-2xl shadow transition-all duration-200 active:scale-90"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl transition-all duration-200 active:scale-90"
                 aria-label="Вперёд"
               >›</button>
             </>
@@ -145,67 +172,67 @@ export default function HotelDetail() {
           )}
 
           {hotel.label && (
-            <span className="absolute top-4 sm:top-5 left-4 sm:left-5 px-3 sm:px-5 py-1 sm:py-2 bg-pink-600/90 rounded-full font-bold text-xs sm:text-sm uppercase shadow-lg">
+            <span className="absolute top-4 sm:top-5 left-4 sm:left-5 px-3 sm:px-5 py-1 sm:py-2 bg-pink-600/90 rounded-full font-bold text-xs uppercase shadow-lg">
               {hotel.label}
             </span>
           )}
         </div>
 
         {/* Описание и инфо */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8 mb-8">
-          <div className="md:col-span-2 flex flex-col gap-4 sm:gap-6">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-400 mb-2">Описание</h2>
-            <p className="text-white text-base sm:text-lg leading-relaxed">{hotel.description}</p>
-            <div className="mt-4 flex flex-wrap gap-2 sm:gap-4">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="md:col-span-2 flex flex-col gap-4">
+            <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-400">Описание</h2>
+            <p className="text-base sm:text-lg leading-relaxed">{hotel.description}</p>
+            <div className="mt-4 flex flex-wrap gap-2">
               {actualFeatures.map(f => (
-                <span key={f.key} className="inline-flex items-center gap-1 px-3 py-1 sm:px-4 sm:py-2 bg-white/15 rounded-lg text-sm sm:text-base text-white/90 font-semibold shadow hover:bg-yellow-400/20 transition-all">
+                <span key={f.key}
+                      className="flex items-center gap-1 bg-white/15 px-3 py-1 rounded-lg text-sm font-semibold">
                   <span className="text-lg">{f.icon}</span>{f.label}
                 </span>
               ))}
             </div>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4 sm:p-6 md:p-7 flex flex-col gap-2 sm:gap-4 shadow-xl min-h-[200px] sm:min-h-[230px]">
-            <div className="flex items-center gap-2 text-white/90 text-sm sm:text-base"><span>🕑</span> Заселение: <b>с 14:00</b></div>
-            <div className="flex items-center gap-2 text-white/90 text-sm sm:text-base"><span>🚪</span> Выселение: <b>до 12:00</b></div>
-            <div className="flex items-center gap-2 text-white/90 text-sm sm:text-base"><span>📍</span> Адрес: 
-              <span className="truncate max-w-[140px] sm:max-w-[180px] inline-block ml-1">{hotel.address || 'Не указан'}</span>
+          <div className="rounded-2xl bg-white/10 p-4 flex flex-col gap-2 shadow-xl">
+            <div className="flex items-center gap-2 text-sm"><span>🕑</span> Заселение: <b>с 14:00</b></div>
+            <div className="flex items-center gap-2 text-sm"><span>🚪</span> Выселение: <b>до 12:00</b></div>
+            <div className="flex items-center gap-2 text-sm"><span>📍</span> Адрес:
+              <span className="truncate max-w-[160px] ml-1">{hotel.address || 'Не указан'}</span>
               <button
-                className="ml-1 text-yellow-400 underline underline-offset-2 text-xs sm:text-sm hover:text-yellow-300 transition"
+                className="ml-1 text-yellow-400 underline text-xs"
                 onClick={() => copyToClipboard(hotel.address || '')}
-                type="button"
               >скопировать</button>
             </div>
-            <div className="flex items-center gap-2 text-white/90 text-sm sm:text-base"><span>👥</span> {hotel.reviews || 34} отзывов</div>
+            <div className="flex items-center gap-2 text-sm"><span>👥</span> {hotel.reviews || 0} отзывов</div>
           </div>
         </section>
 
         {/* Даты и гости */}
-        <section className="rounded-2xl bg-white/5 p-4 sm:p-6 flex flex-wrap gap-3 sm:gap-6 items-center mb-4 shadow-lg">
-          <h2 className="text-lg sm:text-xl font-semibold text-yellow-400 w-full mb-2">Выберите даты и гостей</h2>
+        <section className="rounded-2xl bg-white/5 p-4 flex flex-wrap gap-3 items-center mb-4 shadow-lg">
+          <h2 className="w-full text-lg font-semibold text-yellow-400 mb-2">Выберите даты и гостей</h2>
           <input
             type="date"
             value={start}
             onChange={e => setStart(e.target.value)}
-            className="px-3 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/15 text-white focus:outline-yellow-400 text-sm sm:text-base"
+            className="px-3 py-1 rounded-lg bg-white/15 text-white text-sm focus:outline-yellow-400"
           />
-          <span className="text-xl sm:text-2xl text-white">→</span>
+          <span className="text-lg">→</span>
           <input
             type="date"
             value={end}
             onChange={e => setEnd(e.target.value)}
-            className="px-3 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/15 text-white focus:outline-yellow-400 text-sm sm:text-base"
+            className="px-3 py-1 rounded-lg bg-white/15 text-white text-sm focus:outline-yellow-400"
           />
           <select
             value={guests}
             onChange={e => setGuests(Number(e.target.value))}
-            className="px-3 py-1 sm:px-4 sm:py-2 rounded-lg bg-white/15 text-white focus:outline-yellow-400 text-sm sm:text-base"
+            className="px-3 py-1 rounded-lg bg-white/15 text-white text-sm focus:outline-yellow-400"
           >
             <option value={1}>1 взрослый</option>
             <option value={2}>2 взрослых</option>
             <option value={3}>3 взрослых</option>
             <option value={4}>4 взрослых</option>
           </select>
-          <div className="w-full text-white text-sm sm:text-base mt-2">
+          <div className="w-full text-white text-sm mt-2">
             Вы выбрали <b>{nights}</b> ночей × <b>{guests}</b> чел.
           </div>
         </section>
@@ -213,29 +240,27 @@ export default function HotelDetail() {
         {/* Список номеров */}
         <section ref={roomsRef}>
           <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-400 mb-4">Номера</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {['Сингл', 'Дабл'].map((type, i) => {
               const price = type === 'Сингл' ? 50 : 80;
               const total = price * nights * guests;
               return (
-                <div
-                  key={type}
-                  className="rounded-2xl bg-white/10 shadow-xl flex flex-col overflow-hidden group hover:-translate-y-1 hover:shadow-yellow-300/50 transition-transform duration-300"
-                >
+                <div key={type}
+                     className="rounded-2xl bg-white/10 shadow-xl flex flex-col overflow-hidden group hover:-translate-y-1 transition-transform">
                   <img
                     src={hotel.images?.[(i + 1) % hotel.images.length] || hotel.images[0]}
                     alt={type}
-                    className="w-full h-32 sm:h-40 md:h-48 object-cover object-center"
+                    className="w-full h-32 object-cover"
                   />
-                  <div className="flex flex-col gap-2 p-4 sm:p-6 flex-1 justify-between">
-                    <h3 className="text-lg sm:text-xl font-bold mb-1">{type} Room</h3>
-                    <p className="text-sm sm:text-base">Цена: <span className="font-bold text-yellow-400">{price}$</span> / ночь</p>
-                    <p className="text-sm sm:text-base">
-                      Итого за <b>{nights}</b> ночей × {guests} чел = <span className="text-yellow-400 font-extrabold">{total}$</span>
+                  <div className="p-4 flex flex-col gap-2 flex-1 justify-between">
+                    <h3 className="text-lg font-bold">{type} Room</h3>
+                    <p className="text-sm">Цена: <b>{price}$</b> / ночь</p>
+                    <p className="text-sm">
+                      Итого: <b className="text-yellow-400">{total}$</b>
                     </p>
                     <button
-                      className="mt-2 sm:mt-3 bg-yellow-400 text-black font-semibold px-4 sm:px-6 py-2 sm:py-3 rounded-lg hover:bg-yellow-500 shadow transition-all hover:scale-105 active:scale-95 text-sm sm:text-base"
                       onClick={() => setModal({ open: true, roomType: type, total })}
+                      className="mt-2 bg-yellow-400 text-black py-2 rounded-lg font-semibold hover:scale-105 transition-all text-sm"
                     >
                       Забронировать за {total}$
                     </button>
@@ -248,20 +273,21 @@ export default function HotelDetail() {
 
         {/* Раздел отзывов */}
         {hotel.reviewsList && hotel.reviewsList.length > 0 && (
-          <section className="mt-8 sm:mt-10">
+          <section className="mt-8">
             <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-400 mb-4">Отзывы гостей</h2>
-            <div className="flex flex-col gap-4 sm:gap-6">
+            <div className="flex flex-col gap-4">
               {hotel.reviewsList.map((r, idx) => (
-                <div key={idx} className="bg-white/5 rounded-xl p-4 sm:p-6 flex gap-3 sm:gap-5 items-start shadow">
-                  <span className="bg-yellow-400 text-black rounded-full w-8 h-8 sm:w-10 sm:h-10 flex items-center justify-center text-base sm:text-xl font-bold">
+                <div key={idx}
+                     className="bg-white/5 rounded-xl p-4 flex gap-3 items-start shadow">
+                  <span className="bg-yellow-400 text-black rounded-full w-8 h-8 flex items-center justify-center font-bold">
                     {r.user[0]}
                   </span>
                   <div className="flex-1">
-                    <div className="flex justify-between text-sm sm:text-base">
+                    <div className="flex justify-between text-sm">
                       <span className="font-bold">{r.user}</span>
                       <span className="text-yellow-400">★{r.rating}</span>
                     </div>
-                    <p className="mt-1 text-xs sm:text-sm text-white/80">{r.text}</p>
+                    <p className="mt-1 text-xs text-white/80">{r.text}</p>
                   </div>
                 </div>
               ))}
