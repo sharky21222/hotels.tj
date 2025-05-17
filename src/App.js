@@ -3,7 +3,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateRange } from 'react-date-range';
 import { ru } from 'date-fns/locale';
@@ -12,11 +12,11 @@ import { hotels } from './data/hotels';
 import HotelDetail from './pages/HotelDetail';
 import './index.css';
 
-// Константы
 const title = 'HOTELS.TJ'.split('');
 const cities = ['Душанбе', 'Пенджикент'];
 const sortVariants = [
   { value: '', label: 'Без сортировки' },
+  { value: 'fav', label: 'Сначала любимые' },
   { value: 'price-asc', label: 'По цене (дешевле)' },
   { value: 'price-desc', label: 'По цене (дороже)' },
   { value: 'stars', label: 'По рейтингу' },
@@ -26,33 +26,27 @@ const tips = [
   'Бронируйте заранее и экономьте.',
   'Обратите внимание на удобства Wi-Fi.',
   'Используйте фильтры для точного поиска.',
-  'Для экономии выбирайте будние дни.',
-  'Уточняйте наличие бесплатной парковки.',
-  'Обращайте внимание на рейтинг отеля.',
-  'Больше гостей — выгоднее бронирование.',
+  'Секрет: ищите отели с подарками для гостей!',
 ];
 
 export default function App() {
-  // ================== Тема ==================
+  // Тема
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem('theme');
     return stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
   });
   useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
+    if (theme === 'dark') document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // ================== Даты ==================
+  // Даты
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
 
-  // ================== Состояния фильтров ==================
+  // Состояния
   const [dateRange, setDateRange] = useState([{ startDate: today, endDate: tomorrow, key: 'selection' }]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [city, setCity] = useState('');
@@ -70,35 +64,41 @@ export default function App() {
   const [tip, setTip] = useState('');
   const [showCopied, setShowCopied] = useState(false);
 
-  // ================== Инициализация ==================
+  // Новое: Избранное
+  const [favs, setFavs] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('favs_hotels') || '[]');
+    } catch { return []; }
+  });
+  useEffect(() => { localStorage.setItem('favs_hotels', JSON.stringify(favs)); }, [favs]);
+
+  // Новое: Поиск
+  const [search, setSearch] = useState('');
+  const searchRef = useRef();
+
+  // Инициализация
   useEffect(() => {
-    setTimeout(() => setLoading(false), 700);
+    setTimeout(() => setLoading(false), 600);
     setTip(tips[Math.floor(Math.random() * tips.length)]);
   }, []);
 
-  // ================== Скролл кнопка наверх ==================
+  // Скролл
   useEffect(() => {
     const onScroll = () => setScrollUp(window.scrollY > 420);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // ================== Pull-to-refresh для мобилок ==================
+  // Pull-to-refresh
   const touchStart = useRef(0);
   const touchMove = useRef(0);
   useEffect(() => {
-    function onStart(e) {
-      if (window.scrollY === 0) touchStart.current = e.touches[0].clientY;
-    }
+    function onStart(e) { if (window.scrollY === 0) touchStart.current = e.touches[0].clientY; }
     function onMove(e) {
       touchMove.current = e.touches[0].clientY;
-      if (touchMove.current - touchStart.current > 70 && window.scrollY === 0) {
-        setShowRefresh(true);
-      }
+      if (touchMove.current - touchStart.current > 70 && window.scrollY === 0) setShowRefresh(true);
     }
-    function onEnd() {
-      setShowRefresh(false);
-    }
+    function onEnd() { setShowRefresh(false); }
     window.addEventListener('touchstart', onStart, { passive: true });
     window.addEventListener('touchmove', onMove, { passive: true });
     window.addEventListener('touchend', onEnd);
@@ -109,25 +109,19 @@ export default function App() {
     };
   }, []);
 
-  // ================== Сброс фильтров ==================
+  // Сброс фильтров
   const resetFilters = () => {
-    setCity('');
-    setMinPrice('');
-    setMaxPrice('');
-    setOnlyWifi(false);
-    setOnlyBreakfast(false);
-    setStars('');
-    setSort('');
+    setCity(''); setMinPrice(''); setMaxPrice(''); setOnlyWifi(false); setOnlyBreakfast(false); setStars(''); setSort('');
   };
 
-  // ================== Количество ночей ==================
+  // Количество ночей
   const nights = useMemo(() => {
     const { startDate, endDate } = dateRange[0];
     const diff = (endDate - startDate) / (1000 * 60 * 60 * 24);
     return diff > 0 ? diff : 1;
   }, [dateRange]);
 
-  // ================== Фильтрация ==================
+  // Фильтрация и поиск
   const filteredHotels = useMemo(() => {
     let data = hotels.filter(h =>
       (!city || h.city === city) &&
@@ -137,25 +131,50 @@ export default function App() {
       (!onlyBreakfast || h.breakfast) &&
       (!stars || h.stars === +stars)
     );
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      data = data.filter(h =>
+        h.name.toLowerCase().includes(q) ||
+        h.description.toLowerCase().includes(q)
+      );
+    }
+    if (sort === 'fav') data = [...data].sort((a, b) => (favs.includes(b.id) ? 1 : 0) - (favs.includes(a.id) ? 1 : 0));
     if (sort === 'price-asc') data.sort((a, b) => a.price - b.price);
     if (sort === 'price-desc') data.sort((a, b) => b.price - a.price);
     if (sort === 'stars') data.sort((a, b) => (b.stars || 0) - (a.stars || 0));
     return data;
-  }, [city, minPrice, maxPrice, onlyWifi, onlyBreakfast, stars, sort]);
+  }, [city, minPrice, maxPrice, onlyWifi, onlyBreakfast, stars, sort, search, favs]);
 
-  // ================== Формат даты ==================
+  // Формат даты
   const fmt = d => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const dateDisplay = `${fmt(dateRange[0].startDate)} — ${fmt(dateRange[0].endDate)}`;
 
-  // ================== Копирование ==================
+  // Копирование
   function handleCopy(txt) {
     navigator.clipboard.writeText(txt);
     setShowCopied(true);
     setTimeout(() => setShowCopied(false), 1300);
   }
 
-  // ================== Баннер-акция для 3+ ночей ==================
+  // Быстрая навигация
+  const navigate = useNavigate();
+  function goToRandomHotel() {
+    const ids = filteredHotels.map(h => h.id);
+    if (ids.length === 0) return;
+    const randId = ids[Math.floor(Math.random() * ids.length)];
+    navigate(`/hotel/${randId}`);
+  }
+
+  // Секретное предложение
+  const showSecret = city === "Душанбе";
+
+  // Баннер-акция
   const showLongStay = nights >= 3;
+
+  // Добавить/убрать из избранного
+  function toggleFav(id) {
+    setFavs(favs.includes(id) ? favs.filter(x => x !== id) : [...favs, id]);
+  }
 
   return (
     <div className={`min-h-screen font-sans relative pb-24 transition-colors duration-500 ${
@@ -181,13 +200,20 @@ export default function App() {
               </motion.span>
             ))}
           </Link>
-          <button
-            onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
-            className="p-2 bg-yellow-400 rounded-full shadow hover:scale-110 transition"
-            title={theme === 'dark' ? "Включить светлую тему" : "Включить тёмную тему"}
-          >
-            {theme === 'dark' ? '☀️' : '🌙'}
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+              className="p-2 bg-yellow-400 rounded-full shadow hover:scale-110 transition"
+              title={theme === 'dark' ? "Включить светлую тему" : "Включить тёмную тему"}
+            >
+              {theme === 'dark' ? '☀️' : '🌙'}
+            </button>
+            <button
+              onClick={goToRandomHotel}
+              className="p-2 bg-pink-500 text-white rounded-full shadow hover:bg-pink-400 transition font-bold"
+              title="Случайный отель"
+            >🎲</button>
+          </div>
         </div>
       </header>
 
@@ -208,6 +234,20 @@ export default function App() {
             className="fixed top-[90px] left-1/2 -translate-x-1/2 z-[1200] bg-gradient-to-r from-pink-500 via-yellow-400 to-pink-400 text-black font-bold px-6 py-3 rounded-2xl shadow-2xl border-2 border-yellow-300 animate-bounce text-base"
           >
             🎁 Скидка 10% за бронь от 3 ночей!
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Секретное предложение */}
+      <AnimatePresence>
+        {showSecret && (
+          <motion.div
+            initial={{ opacity: 0, y: -30 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -30 }}
+            className="fixed top-[145px] left-1/2 -translate-x-1/2 z-[1200] bg-black/90 text-yellow-400 px-7 py-2 rounded-xl shadow-2xl font-bold animate-pulse border border-yellow-400"
+          >
+            🏆 Секретное предложение для Душанбе: бесплатный апгрейд номера!
           </motion.div>
         )}
       </AnimatePresence>
@@ -271,17 +311,11 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
-                <select
-                  value={city}
-                  onChange={e => setCity(e.target.value)}
+                <select value={city} onChange={e => setCity(e.target.value)}
                   className="bg-white text-black dark:bg-zinc-700 dark:text-white rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
                 >
                   <option value="">📍 Все города</option>
-                  {cities.map(c => (
-                    <option key={c} value={c}>
-                      📍 {c}
-                    </option>
-                  ))}
+                  {cities.map(c => <option key={c} value={c}>📍 {c}</option>)}
                 </select>
                 <button
                   onClick={() => setShowCalendar(true)}
@@ -313,17 +347,24 @@ export default function App() {
                     </option>
                   ))}
                 </select>
-                {/* Фильтр убираем на мобилке, так как внизу есть! */}
+                {/* Быстрый поиск */}
+                <input
+                  ref={searchRef}
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="Поиск по названию или описанию..."
+                  className="flex-1 min-w-[150px] max-w-xs rounded-lg px-4 py-3 border border-yellow-400 dark:bg-zinc-700 dark:text-white bg-white text-black text-sm md:text-base"
+                />
                 <button
-                  onClick={() => setFilterOpen(true)}
-                  className="xl:hidden ml-auto bg-yellow-400/90 hover:bg-yellow-300 text-black rounded-lg font-bold px-6 py-3 md:px-8 md:py-4 transition text-sm md:text-base hidden sm:inline-block"
+                  onClick={resetFilters}
+                  className="ml-auto bg-yellow-400/90 hover:bg-yellow-300 text-black rounded-lg font-bold px-6 py-3 md:px-8 md:py-4 transition text-sm md:text-base"
                 >
-                  Фильтры
+                  Сбросить
                 </button>
               </motion.div>
 
               <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-8 px-4 md:px-8 xl:px-0">
-                {/* Sidebar */}
+                {/* Sidebar (можно убрать если не надо, но пусть будет для стиля) */}
                 <aside className="hidden xl:block sticky top-32 self-start">
                   <div className="bg-white/10 dark:bg-zinc-800 border border-white/10 p-8 rounded-2xl shadow-2xl">
                     <h3 className="text-2xl font-bold text-yellow-400 mb-5">Фильтры</h3>
@@ -378,104 +419,8 @@ export default function App() {
                       />
                       Завтрак
                     </label>
-                    <button
-                      onClick={resetFilters}
-                      className="w-full bg-yellow-400 text-black py-3 rounded-xl font-semibold shadow hover:bg-yellow-300 transition text-base"
-                    >
-                      Сбросить
-                    </button>
                   </div>
                 </aside>
-
-                {/* Mobile Drawer */}
-                <AnimatePresence>
-                  {filterOpen && (
-                    <>
-                      <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 0.5 }}
-                        exit={{ opacity: 0 }}
-                        onClick={() => setFilterOpen(false)}
-                        className="fixed inset-0 bg-black z-30 xl:hidden"
-                      />
-                      <motion.aside
-                        initial={{ x: '-100%', opacity: 0 }}
-                        animate={{ x: 0, opacity: 1 }}
-                        exit={{ x: '-100%', opacity: 0 }}
-                        transition={{ type: 'spring', stiffness: 330, damping: 32 }}
-                        className="fixed top-0 left-0 z-40 w-80 h-full bg-gradient-to-br from-zinc-900 to-zinc-800 p-6 shadow-2xl border-r border-yellow-300/20 rounded-tr-3xl rounded-br-3xl xl:hidden overflow-y-auto"
-                      >
-                        <div className="flex justify-between items-center mb-6">
-                          <h3 className="text-xl font-bold text-yellow-400">Фильтры</h3>
-                          <button
-                            onClick={() => setFilterOpen(false)}
-                            className="bg-red-500 hover:bg-red-400 text-white rounded-lg px-3 py-1 font-bold"
-                          >
-                            Закрыть ✕
-                          </button>
-                        </div>
-                        {/* Контент фильтра как в сайдбаре */}
-                        <label className="block mb-4 text-white/90">
-                          Цена от:
-                          <input
-                            type="number"
-                            placeholder="Мин"
-                            value={minPrice}
-                            onChange={e => setMinPrice(e.target.value)}
-                            className="w-full bg-white/15 px-4 py-3 rounded mt-2 mb-3"
-                          />
-                        </label>
-                        <label className="block mb-4 text-white/90">
-                          Цена до:
-                          <input
-                            type="number"
-                            placeholder="Макс"
-                            value={maxPrice}
-                            onChange={e => setMaxPrice(e.target.value)}
-                            className="w-full bg-white/15 px-4 py-3 rounded mt-2 mb-3"
-                          />
-                        </label>
-                        <label className="block mb-4 text-white/90">
-                          Звезды:
-                          <select
-                            value={stars}
-                            onChange={e => setStars(e.target.value)}
-                            className="w-full bg-white/15 px-4 py-3 rounded mt-2"
-                          >
-                            <option value="">Любые</option>
-                            <option value="3">★★★</option>
-                            <option value="4">★★★★</option>
-                            <option value="5">★★★★★</option>
-                          </select>
-                        </label>
-                        <label className="flex items-center gap-3 text-white/90 mb-4">
-                          <input
-                            type="checkbox"
-                            checked={onlyWifi}
-                            onChange={e => setOnlyWifi(e.target.checked)}
-                            className="accent-yellow-400 w-5 h-5"
-                          />
-                          Wi-Fi
-                        </label>
-                        <label className="flex items-center gap-3 text-white/90 mb-6">
-                          <input
-                            type="checkbox"
-                            checked={onlyBreakfast}
-                            onChange={e => setOnlyBreakfast(e.target.checked)}
-                            className="accent-yellow-400 w-5 h-5"
-                          />
-                          Завтрак
-                        </label>
-                        <button
-                          onClick={resetFilters}
-                          className="w-full bg-yellow-400 text-black py-3 rounded-xl font-semibold shadow hover:bg-yellow-300 transition text-base"
-                        >
-                          Сбросить
-                        </button>
-                      </motion.aside>
-                    </>
-                  )}
-                </AnimatePresence>
 
                 {/* Main Content */}
                 <main className="w-full xl:pl-6">
@@ -518,8 +463,18 @@ export default function App() {
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               transition={{ delay: i * 0.1 }}
                               whileHover={{ y: -12, scale: 1.05, boxShadow: '0 20px 60px #ffbb3355' }}
-                              className="hotel-card bg-white/10 dark:bg-zinc-900 border border-yellow-400/10 rounded-3xl shadow-2xl overflow-hidden hover:border-yellow-400 transition-all"
+                              className="hotel-card bg-white/10 dark:bg-zinc-900 border border-yellow-400/10 rounded-3xl shadow-2xl overflow-hidden hover:border-yellow-400 transition-all relative"
                             >
+                              {/* ИЗБРАННОЕ */}
+                              <button
+                                onClick={e => { e.preventDefault(); toggleFav(h.id); }}
+                                className={`absolute top-3 right-4 z-10 text-xl rounded-full p-1 shadow-xl
+                                  ${favs.includes(h.id) ? 'text-pink-400 bg-yellow-200' : 'text-gray-400 bg-black/30 hover:text-yellow-400'}
+                                `}
+                                title={favs.includes(h.id) ? "Убрать из любимых" : "В любимые"}
+                              >
+                                {favs.includes(h.id) ? '❤️' : '🤍'}
+                              </button>
                               <Link to={`/hotel/${h.id}`}>
                                 <img
                                   src={h.images[0]}
@@ -555,17 +510,9 @@ export default function App() {
                 </main>
               </div>
 
-              {/* Mobile Bottom Nav */}
+              {/* Мобильная навигация: только НАВЕРХ! */}
               <div className="fixed bottom-0 left-0 w-full z-[100] sm:hidden">
-                <div className="flex bg-zinc-900/95 border-t border-yellow-400/20 justify-around items-center py-3 px-4 shadow-2xl">
-                  <Link to="/" className="flex flex-col items-center text-yellow-400 font-bold">
-                    <span className="text-2xl">🏠</span>
-                    <span className="text-xs">Главная</span>
-                  </Link>
-                  <button onClick={() => setFilterOpen(true)} className="flex flex-col items-center text-yellow-400 font-bold">
-                    <span className="text-2xl">🔍</span>
-                    <span className="text-xs">Фильтр</span>
-                  </button>
+                <div className="flex bg-zinc-900/95 border-t border-yellow-400/20 justify-center items-center py-3 px-4 shadow-2xl">
                   <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center text-yellow-400 font-bold">
                     <span className="text-2xl">⬆️</span>
                     <span className="text-xs">Наверх</span>
@@ -584,7 +531,7 @@ export default function App() {
         © 2025 Ниязов Амир — Лучшие отели Таджикистана
       </footer>
 
-      {/* Scroll Up Button */}
+      {/* Scroll Up Button (ПК) */}
       <AnimatePresence>
         {scrollUp && (
           <motion.button
