@@ -3,7 +3,7 @@ import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Routes, Route, Link, useLocation } from 'react-router-dom';
+import { Routes, Route, Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateRange } from 'react-date-range';
 import { ru } from 'date-fns/locale';
@@ -147,12 +147,15 @@ export default function App() {
   const fmt = d => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const dateDisplay = `${fmt(dateRange[0].startDate)} — ${fmt(dateRange[0].endDate)}`;
 
-  // ================== Копирование сообщения ==================
+  // ================== Копирование ==================
   function handleCopy(txt) {
     navigator.clipboard.writeText(txt);
     setShowCopied(true);
     setTimeout(() => setShowCopied(false), 1300);
   }
+
+  // ================== Баннер-акция для 3+ ночей ==================
+  const showLongStay = nights >= 3;
 
   return (
     <div className={`min-h-screen font-sans relative pb-24 transition-colors duration-500 ${
@@ -194,6 +197,20 @@ export default function App() {
           💡 Совет дня: {tip}
         </div>
       </div>
+
+      {/* Баннер-акция */}
+      <AnimatePresence>
+        {showLongStay && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.85 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.9 }}
+            className="fixed top-[90px] left-1/2 -translate-x-1/2 z-[1200] bg-gradient-to-r from-pink-500 via-yellow-400 to-pink-400 text-black font-bold px-6 py-3 rounded-2xl shadow-2xl border-2 border-yellow-300 animate-bounce text-base"
+          >
+            🎁 Скидка 10% за бронь от 3 ночей!
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Уведомление о копировании */}
       <AnimatePresence>
@@ -296,9 +313,10 @@ export default function App() {
                     </option>
                   ))}
                 </select>
+                {/* Фильтр убираем на мобилке, так как внизу есть! */}
                 <button
                   onClick={() => setFilterOpen(true)}
-                  className="xl:hidden ml-auto bg-yellow-400/90 hover:bg-yellow-300 text-black rounded-lg font-bold px-6 py-3 md:px-8 md:py-4 transition text-sm md:text-base"
+                  className="xl:hidden ml-auto bg-yellow-400/90 hover:bg-yellow-300 text-black rounded-lg font-bold px-6 py-3 md:px-8 md:py-4 transition text-sm md:text-base hidden sm:inline-block"
                 >
                   Фильтры
                 </button>
@@ -469,7 +487,6 @@ export default function App() {
                   >
                     Наши отели
                   </motion.h2>
-
                   <AnimatePresence>
                     {loading ? (
                       <motion.div
