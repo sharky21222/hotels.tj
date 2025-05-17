@@ -375,3 +375,32 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
     transition: box-shadow .25s, transform .2s, border .18s, z-index .18s;
   }
 }
+.my-datepicker-container .rdrCalendarWrapper {
+  font-size: 15px;
+  border-radius: 1rem;
+  background: #18181b !important;
+  box-shadow: 0 4px 32px 0 #facc1530;
+  border: none;
+}
+.my-datepicker-container .rdrMonthAndYearWrapper,
+.my-datepicker-container .rdrDateDisplayWrapper {
+  background: transparent;
+  color: #facc15;
+}
+.my-datepicker-container .rdrDay {
+  border-radius: 8px !important;
+}
+.my-datepicker-container .rdrDayToday .rdrDayNumber span {
+  color: #facc15 !important;
+  font-weight: bold;
+}
+.my-datepicker-container .rdrMonth {
+  padding: 0 0.4rem;
+}
+@media (max-width: 600px) {
+  .my-datepicker-container .rdrCalendarWrapper {
+    font-size: 12px;
+    min-width: 90vw;
+    padding: 0.2rem;
+  }
+}
