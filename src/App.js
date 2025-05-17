@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateRange } from 'react-date-range';
-import { ru } from 'date-fns/locale';
+import ru from 'date-fns/locale/ru';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 import { hotels } from './data/hotels';
@@ -13,10 +13,10 @@ import './index.css';
 const title = 'HOTELS.TJ'.split('');
 const cities = ['Душанбе', 'Пенджикент'];
 const sortVariants = [
-  { value: '',          label: 'Без сортировки' },
-  { value: 'price-asc',  label: 'По цене (дешевле)' },
+  { value: '', label: 'Без сортировки' },
+  { value: 'price-asc', label: 'По цене (дешевле)' },
   { value: 'price-desc', label: 'По цене (дороже)' },
-  { value: 'stars',      label: 'По рейтингу' },
+  { value: 'stars', label: 'По рейтингу' },
 ];
 const tips = [
   'Проверяйте отзывы перед бронированием!',
@@ -121,7 +121,6 @@ export default function App() {
     return data;
   }, [city, minPrice, maxPrice, onlyWifi, onlyBreakfast, stars, sort]);
 
-  const location = useLocation();
   const fmt = d => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const dateDisplay = `${fmt(dateRange[0].startDate)} — ${fmt(dateRange[0].endDate)}`;
 
@@ -413,7 +412,7 @@ export default function App() {
                                   <p className="text-gray-200 text-base mb-4 line-clamp-2">{h.description}</p>
                                   <div className="flex gap-2 mb-4">
                                     {h.wifi && <span className="bg-blue-600/30 px-3 rounded text-white">📶 Wi-Fi</span>}
-                                    {h.breakfast && <span className="bg-orange-500/30 px-3 rounded text-white">🍳 Завтрак</span>}
+                                    {h.breakfast && <span className="bg-orange-500/30 px-3rounded text-white">🍳 Завтрак</span>}
                                   </div>
                                   <span className="block text-lg md:text-xl bg-gradient-to-r from-yellow-400 to-orange-400/90 px-5 py-2 rounded-lg font-extrabold shadow-lg w-fit">
                                     {h.price}$ × {guests} × {nights} = <b>{h.price * guests * nights}$</b>
