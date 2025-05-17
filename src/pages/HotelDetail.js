@@ -4,11 +4,6 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { hotels } from '../data/hotels';
 import BookingModal from '../components/BookingModal';
 
-// Копирование адреса
-function copyToClipboard(str) {
-  navigator.clipboard.writeText(str).then(() => alert('Адрес скопирован!'));
-}
-
 const featuresList = [
   { key: 'wifi',      label: 'Бесплатный Wi-Fi',    icon: '📶' },
   { key: 'breakfast', label: 'Завтрак включён',     icon: '🍳' },
@@ -20,30 +15,28 @@ const featuresList = [
   { key: 'pool',      label: 'Бассейн',             icon: '🏊' },
 ];
 
-export default function HotelDetail() {
+export default function HotelDetail({ onCopy }) {
   const { id } = useParams();
   const hotel = hotels.find(h => h.id === +id);
   const navigate = useNavigate();
   const roomsRef = useRef();
+  const reviewsRef = useRef();
 
-  // Модалка бронирования
   const [modal, setModal] = useState({ open: false, roomType: '', total: 0 });
-
   const [imgIdx, setImgIdx] = useState(0);
   const today = new Date().toISOString().slice(0, 10);
   const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
   const [start, setStart] = useState(today);
   const [end, setEnd] = useState(tmr.toISOString().slice(0, 10));
   const [guests, setGuests] = useState(1);
+  const [showCopied, setShowCopied] = useState(false);
 
-  // Количество ночей
   const nights = useMemo(() => {
     const d1 = new Date(start), d2 = new Date(end);
     const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
     return diff > 0 ? diff : 1;
   }, [start, end]);
 
-  // Функция бронирования
   async function handleBook(data) {
     try {
       alert(
@@ -69,67 +62,94 @@ export default function HotelDetail() {
   );
 
   const actualFeatures = featuresList.filter(f => hotel[f.key]);
+  const avgRating = hotel.reviewsList?.length
+    ? (hotel.reviewsList.reduce((sum, r) => sum + r.rating, 0) / hotel.reviewsList.length).toFixed(1)
+    : null;
+
+  // Копирование с уведомлением
+  function handleCopyAddress(addr) {
+    navigator.clipboard.writeText(addr || '');
+    setShowCopied(true);
+    setTimeout(() => setShowCopied(false), 1100);
+    if (typeof onCopy === 'function') onCopy(addr);
+  }
+
+  // Web Share API
+  function handleShare() {
+    if (navigator.share) {
+      navigator.share({
+        title: hotel.name,
+        text: `Отель: ${hotel.name}\nАдрес: ${hotel.address}\nЦена от ${hotel.price}$`,
+        url: window.location.href,
+      }).catch(() => {});
+    } else {
+      handleCopyAddress(window.location.href);
+    }
+  }
 
   function scrollToRooms() {
     setTimeout(() => {
       roomsRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 50);
   }
-
-  // Средний рейтинг
-  const avgRating = hotel.reviewsList?.length
-    ? (hotel.reviewsList.reduce((sum, r) => sum + r.rating, 0) / hotel.reviewsList.length).toFixed(1)
-    : null;
+  function scrollToReviews() {
+    setTimeout(() => {
+      reviewsRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white flex flex-col font-sans">
 
-      {/* Фиксированная кнопка Назад только на планшетах и десктопе */}
+      {/* Кнопка назад — моб и ПК */}
       <button
         onClick={() => navigate(-1)}
-        className="hidden md:flex fixed top-4 left-4 z-50 bg-yellow-400/90 hover:bg-yellow-300 hover:-translate-x-1 active:scale-90 transition-all text-black font-bold px-4 py-2 rounded-full shadow-2xl text-lg"
+        className="fixed top-4 left-4 z-50 bg-yellow-400/90 hover:bg-yellow-300 text-black font-bold px-4 py-2 rounded-full shadow-2xl text-lg transition md:flex hidden"
       >
         ← Назад
       </button>
+      <div className="md:hidden mt-2 mb-2 px-1">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center text-yellow-400 font-bold text-lg"
+        >
+          ← Назад
+        </button>
+      </div>
 
-      <div className="flex flex-col gap-6 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-8 w-full">
+      <div className="flex flex-col gap-5 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 w-full">
 
-        {/* Вставка кнопки Назад для мобильных */}
-        <div className="md:hidden mb-4">
-          <button
-            onClick={() => navigate(-1)}
-            className="flex items-center text-yellow-400 font-bold text-lg"
-          >
-            ← Назад
-          </button>
+        {/* Заголовок и кнопки */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
+          <h1 className="text-2xl sm:text-3xl font-bold text-yellow-400">{hotel.name}</h1>
+          <div className="flex gap-2">
+            <button
+              className="bg-yellow-400/80 text-black px-4 py-2 rounded-xl font-bold text-sm hover:bg-yellow-400 shadow transition active:scale-95"
+              onClick={handleShare}
+            >Поделиться</button>
+            <span className="bg-pink-600/90 text-xs font-bold rounded-xl py-2 px-3 ml-2 select-none shadow">Гарантия лучшей цены</span>
+          </div>
         </div>
 
-        {/* Заголовок */}
-        <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-yellow-400">{hotel.name}</h1>
-
-        {/* Средний рейтинг */}
+        {/* Средний рейтинг и отзывы */}
         {avgRating && (
           <div className="flex items-center gap-1 mt-2 text-sm">
             {Array.from({ length: Math.round(avgRating) }).map((_, i) => (
               <span key={i} className="text-yellow-400">★</span>
             ))}
             <span className="ml-2">({avgRating})</span>
-            <span className="ml-2 text-white/80">{hotel.reviewsList.length} отзывов</span>
+            <button
+              className="ml-2 text-yellow-400 underline text-xs hover:text-yellow-300"
+              onClick={scrollToReviews}
+            >
+              отзывы
+            </button>
+            <span className="ml-2 text-white/80">{hotel.reviewsList.length} шт.</span>
           </div>
         )}
 
-        {/* Кнопка скролла к номерам */}
-        <div className="flex justify-end mb-4">
-          <button
-            className="px-4 py-2 bg-yellow-400/90 hover:bg-yellow-500 active:scale-95 rounded-xl font-bold shadow-lg transition-all text-black text-sm sm:text-base"
-            onClick={scrollToRooms}
-          >
-            Посмотреть номера ↓
-          </button>
-        </div>
-
         {/* Фото-слайдер */}
-        <div className="relative rounded-2xl overflow-hidden shadow-2xl h-48 sm:h-64 md:h-80 lg:h-[420px] mb-6 flex items-end select-none">
+        <div className="relative rounded-2xl overflow-hidden shadow-2xl h-48 sm:h-64 md:h-80 mb-6 flex items-end select-none">
           <img
             src={hotel.images?.[imgIdx] || hotel.images?.[0]}
             alt={hotel.name}
@@ -137,28 +157,26 @@ export default function HotelDetail() {
             draggable={false}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent" />
-
           {hotel.images?.length > 1 && (
             <>
               <button
                 onClick={() => setImgIdx(i => i === 0 ? hotel.images.length - 1 : i - 1)}
-                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl transition-all duration-200 active:scale-90"
+                className="absolute left-2 sm:left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl transition active:scale-90"
                 aria-label="Назад"
               >‹</button>
               <button
                 onClick={() => setImgIdx(i => i === hotel.images.length - 1 ? 0 : i + 1)}
-                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl transition-all duration-200 active:scale-90"
+                className="absolute right-2 sm:right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-yellow-400/80 text-white rounded-full w-8 sm:w-10 h-8 sm:h-10 flex items-center justify-center text-xl transition active:scale-90"
                 aria-label="Вперёд"
               >›</button>
             </>
           )}
-
           {hotel.images?.length > 1 && (
             <div className="absolute left-4 sm:left-6 bottom-4 sm:bottom-6 flex gap-2 sm:gap-3 z-20">
               {hotel.images.map((src, idx) => (
                 <button
                   key={src}
-                  className={`w-12 sm:w-16 h-8 sm:h-12 rounded-lg overflow-hidden border-2 transition-all duration-300 
+                  className={`w-12 sm:w-16 h-8 sm:h-12 rounded-lg overflow-hidden border-2 transition duration-300 
                     ${imgIdx === idx
                       ? 'border-yellow-400 scale-110 shadow-lg'
                       : 'border-transparent opacity-70 hover:opacity-100 hover:scale-105'}`}
@@ -170,7 +188,6 @@ export default function HotelDetail() {
               ))}
             </div>
           )}
-
           {hotel.label && (
             <span className="absolute top-4 sm:top-5 left-4 sm:left-5 px-3 sm:px-5 py-1 sm:py-2 bg-pink-600/90 rounded-full font-bold text-xs uppercase shadow-lg">
               {hotel.label}
@@ -179,14 +196,13 @@ export default function HotelDetail() {
         </div>
 
         {/* Описание и инфо */}
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
           <div className="md:col-span-2 flex flex-col gap-4">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-400">Описание</h2>
-            <p className="text-base sm:text-lg leading-relaxed">{hotel.description}</p>
-            <div className="mt-4 flex flex-wrap gap-2">
+            <h2 className="text-xl font-extrabold text-yellow-400">Описание</h2>
+            <p className="text-base leading-relaxed">{hotel.description}</p>
+            <div className="mt-3 flex flex-wrap gap-2">
               {actualFeatures.map(f => (
-                <span key={f.key}
-                      className="flex items-center gap-1 bg-white/15 px-3 py-1 rounded-lg text-sm font-semibold">
+                <span key={f.key} className="flex items-center gap-1 bg-white/15 px-3 py-1 rounded-lg text-sm font-semibold">
                   <span className="text-lg">{f.icon}</span>{f.label}
                 </span>
               ))}
@@ -199,12 +215,20 @@ export default function HotelDetail() {
               <span className="truncate max-w-[160px] ml-1">{hotel.address || 'Не указан'}</span>
               <button
                 className="ml-1 text-yellow-400 underline text-xs"
-                onClick={() => copyToClipboard(hotel.address || '')}
-              >скопировать</button>
+                onClick={() => handleCopyAddress(hotel.address || '')}
+                type="button"
+              >копировать</button>
             </div>
             <div className="flex items-center gap-2 text-sm"><span>👥</span> {hotel.reviews || 0} отзывов</div>
           </div>
         </section>
+
+        {/* Уведомление о копировании */}
+        {showCopied && (
+          <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[1100] bg-yellow-400 text-black px-8 py-3 rounded-2xl shadow-lg font-semibold text-base">
+            Скопировано!
+          </div>
+        )}
 
         {/* Даты и гости */}
         <section className="rounded-2xl bg-white/5 p-4 flex flex-wrap gap-3 items-center mb-4 shadow-lg">
@@ -237,9 +261,21 @@ export default function HotelDetail() {
           </div>
         </section>
 
+        {/* Кнопка к номерам */}
+        <div className="flex gap-3 flex-wrap justify-end mb-3">
+          <button
+            className="px-5 py-2 bg-yellow-400/90 hover:bg-yellow-500 rounded-xl font-bold text-black text-sm shadow transition active:scale-95"
+            onClick={scrollToRooms}
+          >К номерам ↓</button>
+          <button
+            className="px-5 py-2 bg-yellow-400/60 hover:bg-yellow-400 rounded-xl font-bold text-black text-sm shadow transition active:scale-95"
+            onClick={scrollToReviews}
+          >К отзывам ↓</button>
+        </div>
+
         {/* Список номеров */}
         <section ref={roomsRef}>
-          <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-400 mb-4">Номера</h2>
+          <h2 className="text-xl font-extrabold text-yellow-400 mb-4">Номера</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {['Сингл', 'Дабл'].map((type, i) => {
               const price = type === 'Сингл' ? 50 : 80;
@@ -273,8 +309,8 @@ export default function HotelDetail() {
 
         {/* Раздел отзывов */}
         {hotel.reviewsList && hotel.reviewsList.length > 0 && (
-          <section className="mt-8">
-            <h2 className="text-xl sm:text-2xl font-extrabold text-yellow-400 mb-4">Отзывы гостей</h2>
+          <section className="mt-8" ref={reviewsRef}>
+            <h2 className="text-xl font-extrabold text-yellow-400 mb-4">Отзывы гостей</h2>
             <div className="flex flex-col gap-4">
               {hotel.reviewsList.map((r, idx) => (
                 <div key={idx}
@@ -296,8 +332,7 @@ export default function HotelDetail() {
         )}
 
       </div>
-
-      {/* Модальное окно бронирования */}
+      {/* Модалка */}
       <BookingModal
         open={modal.open}
         onClose={() => setModal({ open: false, roomType: '', total: 0 })}
