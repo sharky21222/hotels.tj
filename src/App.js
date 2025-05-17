@@ -1,6 +1,6 @@
 // src/App.js
-import React, { useState, useMemo, useEffect } from 'react';
-import { Routes, Route, Link } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { hotels } from './data/hotels';
 import HotelDetail from './pages/HotelDetail';
@@ -36,7 +36,7 @@ export default function App() {
   // Loader
   const [loading, setLoading] = useState(true);
   useEffect(() => {
-    setTimeout(() => setLoading(false), 900);
+    setTimeout(() => setLoading(false), 700);
   }, []);
 
   // Scroll Up button
@@ -45,6 +45,36 @@ export default function App() {
     const onScroll = () => setScrollUp(window.scrollY > 420);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
+  // Pull-to-refresh подсказка
+  const [showRefresh, setShowRefresh] = useState(false);
+  const touchStart = useRef(0);
+  const touchMove = useRef(0);
+
+  useEffect(() => {
+    function handleTouchStart(e) {
+      if (window.scrollY === 0) {
+        touchStart.current = e.touches[0].clientY;
+      }
+    }
+    function handleTouchMove(e) {
+      touchMove.current = e.touches[0].clientY;
+      if (touchMove.current - touchStart.current > 70 && window.scrollY === 0) {
+        setShowRefresh(true);
+      }
+    }
+    function handleTouchEnd() {
+      setShowRefresh(false);
+    }
+    window.addEventListener('touchstart', handleTouchStart, { passive: true });
+    window.addEventListener('touchmove', handleTouchMove, { passive: true });
+    window.addEventListener('touchend', handleTouchEnd);
+    return () => {
+      window.removeEventListener('touchstart', handleTouchStart);
+      window.removeEventListener('touchmove', handleTouchMove);
+      window.removeEventListener('touchend', handleTouchEnd);
+    };
   }, []);
 
   // Сбросить фильтры
@@ -82,11 +112,14 @@ export default function App() {
     return data;
   }, [city, minPrice, maxPrice, onlyWifi, onlyBreakfast, stars, sort]);
 
+  // Для активной вкладки bottom-navbar
+  const location = useLocation();
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white font-sans">
-      {/* Fixed HEADER + анимация */}
+    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white font-sans relative pb-24">
+      {/* HEADER */}
       <header className="sticky top-0 z-50 bg-black/80 backdrop-blur-xl shadow-2xl">
-        <div className="h-24 flex items-center justify-center select-none">
+        <div className="h-20 flex items-center justify-center select-none">
           <Link to="/" className="flex items-center gap-2 animate__animated animate__fadeInDown">
             {title.map((c, i) => (
               <motion.span
@@ -94,7 +127,7 @@ export default function App() {
                 initial={{ opacity: 0, y: -30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.07, type: 'spring', stiffness: 350 }}
-                className="text-5xl sm:text-6xl font-black text-yellow-400 tracking-widest drop-shadow-lg"
+                className="text-4xl sm:text-5xl font-black text-yellow-400 tracking-widest drop-shadow-lg"
               >
                 {c}
               </motion.span>
@@ -103,47 +136,54 @@ export default function App() {
         </div>
       </header>
 
+      {/* Pull-to-refresh подсказка */}
+      {showRefresh &&
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-[999] px-6 py-2 bg-yellow-400 text-black font-semibold rounded-2xl shadow-lg animate__fadeInDown">
+          Обнови страницу для новых данных ⭮
+        </div>
+      }
+
       <Routes>
         {/* Главная страница с фильтрами */}
         <Route path="/" element={
           <>
-            {/* Filter bar (вверху над сеткой) */}
+            {/* Filter bar */}
             <motion.div
-              className="max-w-7xl mx-auto flex flex-wrap gap-3 sm:gap-5 items-center bg-white/10 backdrop-blur-xl rounded-2xl p-5 mb-8 border border-white/10 filterbar"
+              className="max-w-7xl mx-auto flex flex-wrap gap-3 sm:gap-5 items-center bg-white/10 backdrop-blur-xl rounded-2xl p-4 mb-6 border border-white/10 filterbar"
               initial={{ opacity: 0, y: -20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.4 }}
             >
-              <select value={city} onChange={e => setCity(e.target.value)} className="filter-select">
+              <select value={city} onChange={e => setCity(e.target.value)} className="filter-select w-full sm:w-auto">
                 <option value="">Все города</option>
                 {cities.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
-              <input type="date" value={start} onChange={e => setStart(e.target.value)} className="filter-input"/>
-              <span className="text-xl">→</span>
-              <input type="date" value={end} onChange={e => setEnd(e.target.value)} className="filter-input"/>
-              <select value={guests} onChange={e => setGuests(+e.target.value)} className="filter-select">
+              <input type="date" value={start} onChange={e => setStart(e.target.value)} className="filter-input w-full sm:w-auto"/>
+              <span className="text-xl hidden sm:inline">→</span>
+              <input type="date" value={end} onChange={e => setEnd(e.target.value)} className="filter-input w-full sm:w-auto"/>
+              <select value={guests} onChange={e => setGuests(+e.target.value)} className="filter-select w-full sm:w-auto">
                 <option value={1}>1 взрослый</option>
                 <option value={2}>2 взрослых</option>
                 <option value={3}>3 взрослых</option>
                 <option value={4}>4 взрослых</option>
               </select>
-              <select value={sort} onChange={e => setSort(e.target.value)} className="filter-select">
+              <select value={sort} onChange={e => setSort(e.target.value)} className="filter-select w-full sm:w-auto">
                 {sortVariants.map(o => (<option key={o.value} value={o.value}>{o.label}</option>))}
               </select>
               {/* mobile filter toggle */}
               <button
-                className="xl:hidden bg-yellow-400/90 hover:bg-yellow-300 text-black rounded-lg font-bold px-4 py-2 ml-auto transition-all"
-                onClick={() => setFilterOpen(v => !v)}
+                className="xl:hidden bg-yellow-400/90 hover:bg-yellow-300 text-black rounded-lg font-bold px-5 py-2 ml-auto transition-all"
+                onClick={() => setFilterOpen(true)}
               >
-                Фильтры
+                <span className="text-lg">Фильтры</span>
               </button>
             </motion.div>
 
             {/* Sidebar + Контент: сетка */}
             <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[290px_1fr] gap-7 px-2 xl:px-0 relative">
-              {/* Sidebar Фильтр (desktop, слева строго) */}
+              {/* Sidebar Фильтр (desktop) */}
               <aside className="hidden xl:block sticky top-32 self-start">
-                <div className="bg-white/10 border border-white/10 p-7 rounded-2xl shadow-2xl min-w-[230px] max-w-[290px] w-full animate__animated animate__fadeInLeft">
+                <div className="bg-white/10 border border-white/10 p-7 rounded-2xl shadow-2xl min-w-[230px] max-w-[290px] w-full animate__fadeInLeft">
                   <h3 className="text-xl font-bold text-yellow-400 mb-4">Фильтры</h3>
                   <label className="block mb-2 text-white/90">Цена от:
                     <input type="number" placeholder="Мин" value={minPrice} onChange={e => setMinPrice(e.target.value)}
@@ -171,7 +211,7 @@ export default function App() {
                 </div>
               </aside>
 
-              {/* Мобильный фильтр (drawer слева) */}
+              {/* Мобильный фильтр (drawer) */}
               <AnimatePresence>
                 {filterOpen && (
                   <>
@@ -271,7 +311,7 @@ export default function App() {
               {/* Main Content (карточки справа!) */}
               <main className="w-full xl:pl-2">
                 <motion.h2
-                  className="text-4xl sm:text-5xl text-yellow-400 font-bold text-center mb-7"
+                  className="text-3xl sm:text-5xl text-yellow-400 font-bold text-center mb-6"
                   initial={{ opacity: 0, y: -14 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.48, delay: 0.16 }}
@@ -292,7 +332,7 @@ export default function App() {
                   ) : (
                     <motion.div
                       key="cards"
-                      className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-10 cards"
+                      className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-7 sm:gap-10 cards"
                       initial="hidden"
                       animate="visible"
                       variants={{
@@ -319,8 +359,8 @@ export default function App() {
                           className="hotel-card card group bg-white/10 border border-yellow-400/10 rounded-3xl shadow-2xl overflow-hidden hover:border-yellow-400 transition-all"
                         >
                           <Link to={`/hotel/${hotel.id}`}>
-                            <img src={hotel.images[0]} alt={hotel.name} className="rounded-t-3xl h-56 w-full object-cover group-hover:scale-105 transition-transform duration-300"/>
-                            <div className="info card-content p-6">
+                            <img src={hotel.images[0]} alt={hotel.name} className="rounded-t-3xl h-52 w-full object-cover group-hover:scale-105 transition-transform duration-300"/>
+                            <div className="info card-content p-5">
                               <div className="stars flex gap-0.5 mb-1">
                                 {[...Array(hotel.stars || 4)].map((_, j) => (
                                   <span key={j} className="text-yellow-400 text-lg">★</span>
@@ -329,7 +369,7 @@ export default function App() {
                                   <span key={j} className="empty text-gray-600 text-lg">★</span>
                                 ))}
                               </div>
-                              <h3 className="text-xl font-semibold mb-1">{hotel.name}</h3>
+                              <h3 className="text-lg sm:text-xl font-semibold mb-1">{hotel.name}</h3>
                               <p className="text-gray-200 text-base mb-2 line-clamp-2">{hotel.description}</p>
                               <div className="features mt-1 flex gap-2">
                                 {hotel.wifi && <span className="bg-blue-600/30 px-2 rounded text-white/90">📶 Wi-Fi</span>}
@@ -346,6 +386,24 @@ export default function App() {
                   )}
                 </AnimatePresence>
               </main>
+            </div>
+
+            {/* Bottom NavBar для мобилок */}
+            <div className="fixed bottom-0 left-0 w-full z-[100] sm:hidden">
+              <div className="flex bg-zinc-900/95 border-t border-yellow-400/20 justify-around items-center py-2 px-2 shadow-2xl">
+                <Link to="/" className="flex flex-col items-center text-yellow-400 font-bold">
+                  <span className="text-2xl">🏠</span>
+                  <span className="text-xs mt-0.5">Главная</span>
+                </Link>
+                <button onClick={() => setFilterOpen(true)} className="flex flex-col items-center text-yellow-400 font-bold">
+                  <span className="text-2xl">🔍</span>
+                  <span className="text-xs mt-0.5">Фильтр</span>
+                </button>
+                <button onClick={() => window.scrollTo({top:0, behavior:'smooth'})} className="flex flex-col items-center text-yellow-400 font-bold">
+                  <span className="text-2xl">⬆️</span>
+                  <span className="text-xs mt-0.5">Наверх</span>
+                </button>
+              </div>
             </div>
           </>
         }/>
@@ -364,7 +422,7 @@ export default function App() {
         {scrollUp && (
           <motion.button
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-            className="scroll-up-btn fixed bottom-7 right-8 z-[99] w-14 h-14 rounded-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-3xl shadow-xl flex items-center justify-center transition-all border-2 border-white"
+            className="scroll-up-btn fixed bottom-20 right-6 z-[99] w-14 h-14 rounded-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-3xl shadow-xl flex items-center justify-center transition-all border-2 border-white sm:block hidden"
             initial={{ opacity: 0, scale: 0.7 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.8 }}>
             ↑
           </motion.button>
