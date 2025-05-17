@@ -1,11 +1,15 @@
 // src/App.js
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
+
+// React и всё остальное
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateRange } from 'react-date-range';
-import ru from 'date-fns/locale/ru';
-import 'react-date-range/dist/styles.css';
-import 'react-date-range/dist/theme/default.css';
+// локаль берём именно так:
+import { ru } from 'date-fns/locale';
+
 import { hotels } from './data/hotels';
 import HotelDetail from './pages/HotelDetail';
 import './index.css';
