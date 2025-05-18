@@ -674,7 +674,7 @@ export default function App() {
           }
         />
         {/* Детальная страница */}
-        <Route path="/hotel/:id" element={<HotelDetail onCopy={handleCopy} />} />
+        <Route path="/hotel/:id" element={<HotelDetail onCopy={handleCopy} isDark={isDark}/>} />
       </Routes>
 
       {/* FOOTER */}

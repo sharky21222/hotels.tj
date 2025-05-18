@@ -5,7 +5,7 @@ import { hotels } from '../data/hotels';
 import BookingModal from '../components/BookingModal';
 import { DateRange } from 'react-date-range';
 import { ru } from 'date-fns/locale';
-import jsPDF from 'jspdf'; // npm i jspdf
+import jsPDF from 'jspdf';
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
 
@@ -20,7 +20,7 @@ const featuresList = [
   { key: 'pool',      label: 'Бассейн',             icon: '🏊' },
 ];
 
-export default function HotelDetail({ onCopy }) {
+export default function HotelDetail({ onCopy, isDark }) {
   const { id } = useParams();
   const hotel = hotels.find(h => h.id === +id);
   const navigate = useNavigate();
@@ -93,7 +93,7 @@ export default function HotelDetail({ onCopy }) {
   }
 
   if (!hotel) return (
-    <div className="min-h-screen flex justify-center items-center bg-zinc-900 text-2xl text-white font-bold">
+    <div className={`min-h-screen flex justify-center items-center ${isDark ? "bg-zinc-900 text-white" : "bg-white text-black"} text-2xl font-bold`} style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
       Отель не найден
     </div>
   );
@@ -133,12 +133,25 @@ export default function HotelDetail({ onCopy }) {
     }, 50);
   }
 
+  // --- Dropdown option цвета для тёмной темы ---
+  const selectClass =
+    (isDark
+      ? "px-3 py-1 rounded-lg bg-zinc-800 text-white text-sm focus:outline-yellow-400 border border-zinc-700"
+      : "px-3 py-1 rounded-lg bg-white text-black text-sm focus:outline-yellow-400 border border-yellow-200") +
+    " font-semibold transition-colors duration-150 shadow";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white flex flex-col font-sans">
+    <div
+      className={`min-h-screen flex flex-col ${isDark ? "bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white" : "bg-gradient-to-br from-yellow-50 via-white to-yellow-100 text-black"} font-sans`}
+      style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
+    >
       {/* Кнопка назад */}
       <button
         onClick={() => navigate(-1)}
-        className="fixed top-4 left-4 z-50 bg-yellow-400/90 hover:bg-yellow-300 text-black font-bold px-4 py-2 rounded-full shadow-2xl text-lg transition md:flex hidden"
+        className={`fixed top-4 left-4 z-50 px-4 py-2 rounded-full shadow-2xl text-lg font-bold transition md:flex hidden
+          ${isDark ? "bg-yellow-400/90 text-black hover:bg-yellow-300" : "bg-yellow-500/90 text-black hover:bg-yellow-300"}
+        `}
+        style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
       >
         ← Назад
       </button>
@@ -146,6 +159,7 @@ export default function HotelDetail({ onCopy }) {
         <button
           onClick={() => navigate(-1)}
           className="flex items-center text-yellow-400 font-bold text-lg"
+          style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
         >
           ← Назад
         </button>
@@ -157,10 +171,17 @@ export default function HotelDetail({ onCopy }) {
           <h1 className="text-2xl sm:text-3xl font-bold text-yellow-400">{hotel.name}</h1>
           <div className="flex gap-2">
             <button
-              className="bg-yellow-400/80 text-black px-4 py-2 rounded-xl font-bold text-sm hover:bg-yellow-400 shadow transition active:scale-95"
+              className={`px-4 py-2 rounded-xl font-bold text-sm shadow transition active:scale-95
+                ${isDark
+                  ? "bg-yellow-400/80 text-black hover:bg-yellow-400"
+                  : "bg-yellow-400 text-black hover:bg-yellow-300"}
+              `}
               onClick={handleShare}
+              style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
             >Поделиться</button>
-            <span className="bg-pink-600/90 text-xs font-bold rounded-xl py-2 px-3 ml-2 select-none shadow">Гарантия лучшей цены</span>
+            <span className="bg-pink-600/90 text-xs font-bold rounded-xl py-2 px-3 ml-2 select-none shadow">
+              Гарантия лучшей цены
+            </span>
           </div>
         </div>
         {/* Средний рейтинг и отзывы */}
@@ -176,7 +197,7 @@ export default function HotelDetail({ onCopy }) {
             >
               отзывы
             </button>
-            <span className="ml-2 text-white/80">{hotel.reviewsList.length} шт.</span>
+            <span className={isDark ? "ml-2 text-white/80" : "ml-2 text-black/70"}>{hotel.reviewsList.length} шт.</span>
           </div>
         )}
 
@@ -234,13 +255,13 @@ export default function HotelDetail({ onCopy }) {
             <p className="text-base leading-relaxed">{hotel.description}</p>
             <div className="mt-3 flex flex-wrap gap-2">
               {actualFeatures.map(f => (
-                <span key={f.key} className="flex items-center gap-1 bg-white/15 px-3 py-1 rounded-lg text-sm font-semibold">
+                <span key={f.key} className={`${isDark ? "bg-white/15" : "bg-yellow-100"} flex items-center gap-1 px-3 py-1 rounded-lg text-sm font-semibold`}>
                   <span className="text-lg">{f.icon}</span>{f.label}
                 </span>
               ))}
             </div>
           </div>
-          <div className="rounded-2xl bg-white/10 p-4 flex flex-col gap-2 shadow-xl">
+          <div className={`rounded-2xl p-4 flex flex-col gap-2 shadow-xl ${isDark ? "bg-zinc-800" : "bg-yellow-100"}`}>
             <div className="flex items-center gap-2 text-sm"><span>🕑</span> Заселение: <b>с 14:00</b></div>
             <div className="flex items-center gap-2 text-sm"><span>🚪</span> Выселение: <b>до 12:00</b></div>
             <div className="flex items-center gap-2 text-sm"><span>📍</span> Адрес:
@@ -257,31 +278,33 @@ export default function HotelDetail({ onCopy }) {
 
         {/* Уведомление о копировании */}
         {showCopied && (
-          <div className="fixed top-14 left-1/2 -translate-x-1/2 z-[1100] bg-yellow-400 text-black px-8 py-3 rounded-2xl shadow-lg font-semibold text-base">
+          <div className={`fixed top-14 left-1/2 -translate-x-1/2 z-[1100] px-8 py-3 rounded-2xl shadow-lg font-semibold text-base ${isDark ? "bg-yellow-400 text-black" : "bg-yellow-400 text-black"}`}>
             Скопировано!
           </div>
         )}
 
         {/* Даты и гости (с DateRange календарём) */}
-        <section className="rounded-2xl bg-white/5 p-4 flex flex-wrap gap-3 items-center mb-4 shadow-lg">
+        <section className={`${isDark ? "bg-zinc-800" : "bg-yellow-50"} rounded-2xl p-4 flex flex-wrap gap-3 items-center mb-4 shadow-lg`}>
           <h2 className="w-full text-lg font-semibold text-yellow-400 mb-2">Выберите даты и гостей</h2>
           <button
             onClick={() => setShowCalendar(true)}
-            className="px-4 py-2 bg-yellow-400/90 hover:bg-yellow-500 rounded-xl text-black font-semibold shadow transition-all"
+            className={`px-4 py-2 rounded-xl font-semibold shadow transition-all
+              ${isDark ? "bg-yellow-400/90 text-black hover:bg-yellow-400" : "bg-yellow-400 text-black hover:bg-yellow-300"}
+            `}
           >
             📅 {dateRange[0].startDate.toLocaleDateString()} — {dateRange[0].endDate.toLocaleDateString()}
           </button>
           <select
             value={guests}
             onChange={e => setGuests(Number(e.target.value))}
-            className="px-3 py-1 rounded-lg bg-white/15 text-white text-sm focus:outline-yellow-400"
+            className={selectClass}
           >
             <option value={1}>1 взрослый</option>
             <option value={2}>2 взрослых</option>
             <option value={3}>3 взрослых</option>
             <option value={4}>4 взрослых</option>
           </select>
-          <div className="w-full text-white text-sm mt-2">
+          <div className="w-full text-sm mt-2">
             Вы выбрали <b>{nights}</b> ночей × <b>{guests}</b> чел.
           </div>
         </section>
@@ -290,7 +313,7 @@ export default function HotelDetail({ onCopy }) {
           <>
             <div className="fixed inset-0 z-[999] bg-black/60" onClick={() => setShowCalendar(false)} />
             <div className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none">
-              <div className="pointer-events-auto bg-zinc-900 rounded-2xl shadow-2xl p-6 w-[95vw] max-w-md mx-auto">
+              <div className={`pointer-events-auto rounded-2xl shadow-2xl p-6 w-[95vw] max-w-md mx-auto ${isDark ? "bg-zinc-900 text-white" : "bg-white text-black"}`}>
                 <DateRange
                   ranges={dateRange}
                   onChange={item => setDateRange([item.selection])}
@@ -303,7 +326,9 @@ export default function HotelDetail({ onCopy }) {
                 />
                 <button
                   onClick={() => setShowCalendar(false)}
-                  className="mt-4 w-full px-6 py-3 bg-yellow-400 text-black rounded-xl font-bold shadow hover:bg-yellow-300 text-base transition"
+                  className={`mt-4 w-full px-6 py-3 rounded-xl font-bold shadow text-base transition
+                    ${isDark ? "bg-yellow-400 text-black hover:bg-yellow-300" : "bg-yellow-400 text-black hover:bg-yellow-300"}
+                  `}
                 >
                   ОК
                 </button>
@@ -315,11 +340,15 @@ export default function HotelDetail({ onCopy }) {
         {/* Кнопка к номерам и отзывам */}
         <div className="flex gap-3 flex-wrap justify-end mb-3">
           <button
-            className="px-5 py-2 bg-yellow-400/90 hover:bg-yellow-500 rounded-xl font-bold text-black text-sm shadow transition active:scale-95"
+            className={`px-5 py-2 rounded-xl font-bold text-sm shadow transition active:scale-95
+              ${isDark ? "bg-yellow-400/90 text-black hover:bg-yellow-400" : "bg-yellow-400 text-black hover:bg-yellow-300"}
+            `}
             onClick={scrollToRooms}
           >К номерам ↓</button>
           <button
-            className="px-5 py-2 bg-yellow-400/60 hover:bg-yellow-400 rounded-xl font-bold text-black text-sm shadow transition active:scale-95"
+            className={`px-5 py-2 rounded-xl font-bold text-sm shadow transition active:scale-95
+              ${isDark ? "bg-yellow-400/60 text-black hover:bg-yellow-400" : "bg-yellow-400/60 text-black hover:bg-yellow-400"}
+            `}
             onClick={scrollToReviews}
           >К отзывам ↓</button>
         </div>
@@ -333,7 +362,7 @@ export default function HotelDetail({ onCopy }) {
               const total = price * nights * guests;
               return (
                 <div key={type}
-                     className="rounded-2xl bg-white/10 shadow-xl flex flex-col overflow-hidden group hover:-translate-y-1 transition-transform">
+                     className={`rounded-2xl shadow-xl flex flex-col overflow-hidden group hover:-translate-y-1 transition-transform ${isDark ? "bg-zinc-800" : "bg-white"}`}>
                   <img
                     src={hotel.images?.[(i + 1) % hotel.images.length] || hotel.images[0]}
                     alt={type}
@@ -347,7 +376,9 @@ export default function HotelDetail({ onCopy }) {
                     </p>
                     <button
                       onClick={() => setModal({ open: true, roomType: type, total })}
-                      className="mt-2 bg-yellow-400 text-black py-2 rounded-lg font-semibold hover:scale-105 transition-all text-sm"
+                      className={`mt-2 py-2 rounded-lg font-semibold hover:scale-105 transition-all text-sm shadow
+                        ${isDark ? "bg-yellow-400 text-black" : "bg-yellow-400 text-black"}
+                      `}
                     >
                       Забронировать за {total}$
                     </button>
@@ -365,7 +396,7 @@ export default function HotelDetail({ onCopy }) {
             <div className="flex flex-col gap-4">
               {hotel.reviewsList.map((r, idx) => (
                 <div key={idx}
-                     className="bg-white/5 rounded-xl p-4 flex gap-3 items-start shadow">
+                     className={`${isDark ? "bg-zinc-800" : "bg-white/5"} rounded-xl p-4 flex gap-3 items-start shadow`}>
                   <span className="bg-yellow-400 text-black rounded-full w-8 h-8 flex items-center justify-center font-bold">
                     {r.user[0]}
                   </span>
@@ -374,7 +405,7 @@ export default function HotelDetail({ onCopy }) {
                       <span className="font-bold">{r.user}</span>
                       <span className="text-yellow-400">★{r.rating}</span>
                     </div>
-                    <p className="mt-1 text-xs text-white/80">{r.text}</p>
+                    <p className={`mt-1 text-xs ${isDark ? "text-white/80" : "text-black/70"}`}>{r.text}</p>
                   </div>
                 </div>
               ))}
@@ -396,6 +427,7 @@ export default function HotelDetail({ onCopy }) {
         end={end}
         onBook={handleBook}
         onPDF={(data) => generatePDF(hotel, modal.roomType, modal.total, dateRange, guests, data)}
+        isDark={isDark}
       />
     </div>
   );
