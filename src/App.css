@@ -12,15 +12,23 @@ html, body, #root {
   transition: background 0.4s, color 0.4s;
   scroll-behavior: smooth;
 }
-::-webkit-scrollbar {
-  width: 10px;
-  background: #20212a;
-}
-::-webkit-scrollbar-thumb {
-  background: #44485e;
-  border-radius: 6px;
-}
 a { color: inherit; text-decoration: none; }
+
+/* === ВАУ: Фон с плавающими пузырьками === */
+body::before {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  left: 0; top: 0; width: 100vw; height: 100vh;
+  pointer-events: none;
+  background: url('https://svgshare.com/i/13tJ.svg') repeat;
+  opacity: 0.11;
+  animation: float-bg 45s linear infinite;
+}
+@keyframes float-bg {
+  0% { background-position: 0 0;}
+  100% { background-position: 100vw 80vh;}
+}
 
 /* === Header === */
 header, .header {
@@ -42,7 +50,7 @@ header, .header {
   text-shadow: 0 10px 32px #ffc40027, 0 2px 4px #2228;
 }
 
-/* === Filter Bar (Glass) === */
+/* === Filter Bar (Glassmorphism) === */
 .filterbar, .glassbar, .filter-bar {
   display: flex;
   gap: 1.5rem;
@@ -50,16 +58,17 @@ header, .header {
   max-width: 1100px;
   margin: 2rem auto 2.5rem;
   padding: 1.3rem 2.2rem;
-  background: rgba(32,32,40,0.82);
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(16px) saturate(120%);
   border-radius: 20px;
-  box-shadow: 0 8px 32px 0 rgba(255,187,51,0.08), 0 1.5px 6px #2228;
-  backdrop-filter: blur(18px);
+  box-shadow: 0 8px 40px 0 rgba(255,187,51,0.11), 0 1.5px 6px #2228;
+  border: 1.5px solid rgba(255, 255, 255, 0.21);
   flex-wrap: wrap;
   position: relative;
 }
 .filterbar input, .filterbar select, .glassbar input, .glassbar select {
   background: rgba(255,255,255,0.14);
-  color: #fff;
+  color: #222;
   border: none;
   border-radius: 11px;
   padding: .9rem 1.3rem;
@@ -69,16 +78,14 @@ header, .header {
   box-shadow: 0 2px 8px #0002;
 }
 .filterbar select:focus,
-.filterbar input:focus { background: rgba(255,255,255,0.22); color: #fff; }
-
+.filterbar input:focus { background: rgba(255,255,255,0.22); color: #222; }
 .filterbar option,
 select option {
-  background: #22222b;
-  color: #fff;
+  background: #fff;
+  color: #181a1a;
   font-size: 1.07rem;
 }
 
-.filterbar span { font-size: 2rem; color: #ffbb33cc; }
 .find-btn, .filterbar button, .glassbar button {
   padding: .9rem 2.2rem;
   background: linear-gradient(90deg, #ffd400 60%, #ffbb33 100%);
@@ -89,6 +96,7 @@ select option {
   cursor: pointer;
   transition: background .3s, box-shadow .2s, transform .15s;
   box-shadow: 0 6px 32px -5px #ffbb3330;
+  animation: btn-bounce 2.7s infinite;
 }
 .find-btn:hover, .filterbar button:hover, .glassbar button:hover {
   background: linear-gradient(90deg, #ffe04c 60%, #f4a200 100%);
@@ -96,14 +104,20 @@ select option {
   box-shadow: 0 10px 36px #ffbb3340;
   transform: translateY(-2px) scale(1.05);
 }
+@keyframes btn-bounce {
+  0%, 100% { transform: translateY(0);}
+  50% { transform: translateY(-4px);}
+}
 
-/* === Sidebar / Filters === */
+/* === Sidebar / Filters (Glassmorphism) === */
 aside, .sidebar {
   min-width: 250px;
   max-width: 320px;
-  background: rgba(32,32,40,0.92);
+  background: rgba(255,255,255,0.10);
+  backdrop-filter: blur(18px) saturate(120%);
   border-radius: 16px;
   box-shadow: 0 8px 24px #0005, 0 2px 8px #ffbb3320;
+  border: 1.5px solid rgba(255,255,255,0.20);
   padding: 2rem 1.2rem 1.5rem;
   margin-right: 2.7rem;
   height: fit-content;
@@ -117,18 +131,18 @@ aside h3, .sidebar h3 {
   margin-bottom: 1.3rem;
 }
 aside input[type="number"], aside select {
-  background: #1a1a22;
-  color: #ffbb33;
+  background: #fff;
+  color: #222;
   padding: .8rem 1rem;
   font-size: 1rem;
   border-radius: 8px;
-  border: 1.5px solid #242;
+  border: 1.5px solid #e5e5e5;
   margin-bottom: .7rem;
   width: 100%;
   box-shadow: 0 2px 8px #0002;
   outline: none;
 }
-aside label { color: #ddd; font-size: 1.07rem; }
+aside label { color: #181a1a; font-size: 1.07rem; }
 aside button {
   margin-top: 1.4rem;
   width: 100%;
@@ -174,24 +188,31 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
 
 /* === Individual Card === */
 .card, .hotel-card, .cards > div {
-  background: linear-gradient(120deg, #232333 55%, #292940 100%);
+  background: linear-gradient(120deg, #fff 70%, #f3f3f7 100%);
+  color: #222;
   border-radius: 20px;
-  box-shadow: 0 6px 30px #0006, 0 2px 8px #ffbb3320;
+  box-shadow: 0 6px 30px #0004, 0 2px 8px #ffbb3320;
   overflow: hidden;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  transition: box-shadow .26s, transform .18s, border .18s;
+  transition: box-shadow .26s cubic-bezier(.19,1,.22,1), transform .18s cubic-bezier(.19,1,.22,1), border .18s;
   position: relative;
-  border: 2px solid #232333;
+  border: 2px solid #f4e6ba;
   z-index: 1;
   margin-bottom: 0;
+  will-change: transform;
+  animation: appear .7s both;
 }
 .card:hover, .hotel-card:hover, .cards > div:hover {
   transform: translateY(-14px) scale(1.045);
-  box-shadow: 0 16px 44px 0 #ffbb3330, 0 8px 34px 0 #13132570;
+  box-shadow: 0 16px 44px 0 #ffbb3342, 0 8px 34px 0 #13132570;
   border-color: #ffbb33;
   z-index: 10;
+}
+@keyframes appear {
+  from { opacity: 0; transform: translateY(36px);}
+  to { opacity: 1; transform: translateY(0);}
 }
 
 /* === Card Image === */
@@ -205,7 +226,7 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
   background: #222;
 }
 .card:hover img, .hotel-card:hover img, .cards > div:hover img {
-  filter: brightness(1.04) saturate(1.15);
+  filter: brightness(1.08) saturate(1.22);
   transform: scale(1.04);
 }
 
@@ -221,10 +242,10 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
   font-size: 1.38rem;
   font-weight: 700;
   margin: 0 0 .32rem 0;
-  color: #fff;
+  color: #181a1a;
 }
 .card p, .hotel-card p, .card-content p {
-  color: #eee;
+  color: #373737;
   font-size: 1.06rem;
   margin-bottom: .22rem;
 }
@@ -250,8 +271,8 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
   margin-top: .44rem;
 }
 .card .features span, .hotel-card .features span {
-  background: rgba(255,255,255,0.07);
-  color: #ffbb33;
+  background: rgba(255,255,255,0.16);
+  color: #fa613b;
   border-radius: 5px;
   padding: .18rem .7rem;
   font-size: .97rem;
@@ -271,7 +292,7 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
   align-items: center;
   gap: 0.05em;
 }
-.stars .empty { color: #55585a; }
+.stars .empty { color: #aaa; }
 
 /* === Booking Button === */
 .btn, .book-btn {
@@ -287,6 +308,7 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
   font-size: 1.09rem;
   box-shadow: 0 3px 18px #ffbb332a;
   transition: background .2s, color .18s, box-shadow .15s;
+  animation: btn-bounce 2.3s infinite;
 }
 .btn:hover, .book-btn:hover {
   background: linear-gradient(90deg,#ffe04c,#ffb200 90%);
@@ -300,7 +322,7 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
   text-align: center;
   padding: 1.4rem 0 .5rem 0;
   color: #bdbdbd;
-  background: linear-gradient(90deg, #191922 10%, #232333 60%);
+  background: linear-gradient(90deg, #fff 10%, #fcfcfa 60%);
   font-size: .97rem;
   margin-top: 3rem;
   border-radius: 12px 12px 0 0;
@@ -348,6 +370,27 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
 }
 .scroll-up-btn:hover, .scrollTopBtn:hover { opacity: 1; background: #ffd900; }
 
+/* === Date Picker Styling (ВАЖНО: для светлой темы) === */
+.rdrCalendarWrapper, .rdrDateDisplay, .rdrMonth, .rdrWeekDays, .rdrDays, .rdrDay, .rdrDayNumber span, .rdrMonthAndYearPickers, .rdrMonthAndYearWrapper, .rdrDateRangePickerWrapper {
+  color: #181a1a !important;
+  background: #fff !important;
+}
+.rdrDayToday .rdrDayNumber span {
+  color: #ffbb33 !important;
+  font-weight: bold;
+}
+.rdrDaySelected, .rdrDayStartPreview, .rdrDayEndPreview {
+  background: #ffbb33 !important;
+  color: #fff !important;
+}
+.rdrMonthAndYearPickers select, .rdrDateDisplay input {
+  color: #181a1a !important;
+  background: #fff !important;
+  border-radius: 7px !important;
+  border: 1.5px solid #e7e7e7;
+  padding: 2px 6px;
+}
+
 /* === Responsive === */
 @media (max-width: 1200px) {
   .content, .max-w-7xl, .max-w-6xl { max-width: 97vw; }
@@ -368,43 +411,26 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
   .card img, .hotel-card img, .cards img { height: 140px; }
   .header h1, .logo { font-size: 1.6rem; }
 }
-
-/* === Little Animation === */
-@media (hover: hover) {
-  .card, .hotel-card, .cards > div {
-    transition: box-shadow .25s, transform .2s, border .18s, z-index .18s;
-  }
+.card, .hotel-card, .cards > div {
+  transition: box-shadow .25s, transform .2s, border .18s, z-index .18s;
 }
-.my-datepicker-container .rdrCalendarWrapper {
-  font-size: 15px;
-  border-radius: 1rem;
-  background: #18181b !important;
-  box-shadow: 0 4px 32px 0 #facc1530;
-  border: none;
+.card:hover, .hotel-card:hover, .cards > div:hover {
+  transform: translateY(-14px) scale(1.045) rotate(-1deg);
+  box-shadow: 0 16px 44px 0 #ffbb3340, 0 8px 34px 0 #13132588;
+  border-color: #ffbb33;
+  z-index: 10;
 }
-.my-datepicker-container .rdrMonthAndYearWrapper,
-.my-datepicker-container .rdrDateDisplayWrapper {
-  background: transparent;
-  color: #facc15;
+.logo, .header h1, .header .logo {
+  text-shadow: 0 10px 32px #ffc40027, 0 2px 4px #2228, 0 1px 25px #ffbb33;
 }
-.my-datepicker-container .rdrDay {
-  border-radius: 8px !important;
+.tip-animate {
+  animation: fadeInDown 1s;
 }
-.my-datepicker-container .rdrDayToday .rdrDayNumber span {
-  color: #facc15 !important;
-  font-weight: bold;
+@keyframes fadeInDown {
+  from { opacity: 0; transform: translateY(-30px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
-.my-datepicker-container .rdrMonth {
-  padding: 0 0.4rem;
-}
-@media (max-width: 600px) {
-  .my-datepicker-container .rdrCalendarWrapper {
-    font-size: 12px;
-    min-width: 90vw;
-    padding: 0.2rem;
-  }
-}
-.rdrCalendarWrapper, .rdrDateDisplay, .rdrMonth, .rdrWeekDays, .rdrDays, .rdrDay, .rdrDayNumber span, .rdrMonthAndYearPickers, .rdrMonthAndYearWrapper, .rdrDateRangePickerWrapper {
-  color: #111 !important;
-  background: #fff !important;
+.filterbar, .glassbar, .filter-bar {
+  background: linear-gradient(120deg, #fff8e1 0%, #ffe082 100%);
+  color: #222;
 }

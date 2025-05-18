@@ -1,22 +1,29 @@
-// src/App.js
 import 'react-date-range/dist/styles.css';
 import 'react-date-range/dist/theme/default.css';
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { DateRange } from 'react-date-range';
 import { ru } from 'date-fns/locale';
-
 import { hotels } from './data/hotels';
 import HotelDetail from './pages/HotelDetail';
+import Dropdown from './components/Dropdown'; // <-- наш кастомный дропдаун
 import './index.css';
+
+// Опции для гостей
+const guestOptions = [
+  { value: 1, label: '👤 1 взрослый' },
+  { value: 2, label: '👤 2 взрослых' },
+  { value: 3, label: '👤 3 взрослых' },
+  { value: 4, label: '👤 4 взрослых' }
+];
 
 const title = 'HOTELS.TJ'.split('');
 const cities = ['Душанбе', 'Пенджикент'];
 const sortVariants = [
   { value: '', label: 'Без сортировки' },
   { value: 'fav', label: 'Сначала любимые' },
+  { value: 'popular', label: 'Сначала популярные' },
   { value: 'price-asc', label: 'По цене (дешевле)' },
   { value: 'price-desc', label: 'По цене (дороже)' },
   { value: 'stars', label: 'По рейтингу' },
@@ -41,6 +48,7 @@ export default function App() {
     else document.documentElement.classList.remove('dark');
     localStorage.setItem('theme', theme);
   }, [theme]);
+  const isDark = theme === 'dark';
 
   // --- Даты ---
   const today = new Date();
@@ -121,6 +129,18 @@ export default function App() {
     return diff > 0 ? diff : 1;
   }, [dateRange]);
 
+  // --- Сравнение отелей ---
+  const [compare, setCompare] = useState([]);
+  function toggleCompare(id) {
+    setCompare(prev =>
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : prev.length < 3 ? [...prev, id] : prev
+    );
+  }
+  function clearCompare() { setCompare([]); }
+  const compareHotels = hotels.filter(h => compare.includes(h.id));
+
   // --- Фильтрация и поиск ---
   const filteredHotels = useMemo(() => {
     let data = hotels.filter(h =>
@@ -139,6 +159,7 @@ export default function App() {
       );
     }
     if (sort === 'fav') data = [...data].sort((a, b) => (favs.includes(b.id) ? 1 : 0) - (favs.includes(a.id) ? 1 : 0));
+    if (sort === 'popular') data = [...data].sort(() => Math.random() - 0.5);
     if (sort === 'price-asc') data.sort((a, b) => a.price - b.price);
     if (sort === 'price-desc') data.sort((a, b) => b.price - a.price);
     if (sort === 'stars') data.sort((a, b) => (b.stars || 0) - (a.stars || 0));
@@ -165,23 +186,10 @@ export default function App() {
     navigate(`/hotel/${randId}`);
   }
 
-  // --- Сравнение отелей ---
-  const [compare, setCompare] = useState([]);
-  function toggleCompare(id) {
-    setCompare(prev =>
-      prev.includes(id)
-        ? prev.filter(x => x !== id)
-        : prev.length < 3 ? [...prev, id] : prev
-    );
-  }
-  function clearCompare() { setCompare([]); }
-  const compareHotels = hotels.filter(h => compare.includes(h.id));
-
   // --- Секретное предложение ---
   const showSecret = city === "Душанбе";
 
-  // --- Цвета темы ---
-  const isDark = theme === 'dark';
+  // --- Цвета и шрифт ---
   const mainBg = isDark ? 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-900 text-white' : 'bg-white text-black';
   const cardBg = isDark ? 'bg-zinc-900 border-yellow-400/10' : 'bg-white border-yellow-200';
   const sidebarBg = isDark ? 'bg-zinc-800' : 'bg-yellow-50';
@@ -189,12 +197,32 @@ export default function App() {
   const descText = isDark ? 'text-gray-200' : 'text-gray-700';
   const starsGray = isDark ? 'text-gray-600' : 'text-gray-300';
 
+  // --- Motion variants для карточек и кнопок ---
+  const cardVariants = {
+    initial: { opacity: 0, y: 35, scale: 0.97, boxShadow: '0 2px 16px #0003' },
+    animate: { opacity: 1, y: 0, scale: 1, boxShadow: '0 2px 16px #0003' },
+    whileHover: {
+      y: -15, scale: 1.06,
+      boxShadow: '0 18px 48px 0 #ffd70066,0 4px 40px #ffa50022',
+      transition: { type: 'spring', stiffness: 380, damping: 18, duration: 0.13 }
+    },
+    whileTap: {
+      scale: 0.99,
+      boxShadow: '0 3px 12px #ffd70033'
+    }
+  };
+  const btnVariants = {
+    rest: { scale: 1, boxShadow: '0 4px 16px #ffe08e44' },
+    hover: { scale: 1.045, boxShadow: '0 7px 28px #ffd70060', transition: { duration: 0.18 } },
+    tap: { scale: 0.98, boxShadow: '0 1px 6px #ffd70033', transition: { duration: 0.09 } }
+  };
+
   return (
-    <div className={`min-h-screen font-sans relative pb-24 transition-colors duration-500 ${mainBg}`}>
+    <div className={`min-h-screen font-sans relative pb-24 transition-colors duration-500 ${mainBg}`} style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
       {/* HEADER */}
       <header className={`sticky top-0 z-50 ${isDark ? 'bg-white/10' : 'bg-white/90'} backdrop-blur-xl shadow-2xl`}>
         <div className="flex items-center justify-between mx-auto px-4 md:px-8 h-20 md:h-28">
-          <Link to="/" className="flex items-center gap-2">
+          <Link to="/" className="flex items-center gap-2 select-none">
             {title.map((c, i) => (
               <motion.span
                 key={i}
@@ -202,31 +230,42 @@ export default function App() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: i * 0.05, type: 'spring', stiffness: 350 }}
                 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black text-yellow-400 tracking-widest"
+                style={{ fontFamily: "'Montserrat', Arial, sans-serif", letterSpacing: ".08em" }}
               >
                 {c}
               </motion.span>
             ))}
           </Link>
           <div className="flex items-center gap-3">
-            <button
+            <motion.button
+              variants={btnVariants}
+              initial="rest"
+              whileHover="hover"
+              whileTap="tap"
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 bg-yellow-400 rounded-full shadow hover:scale-110 transition"
+              className="p-2 bg-yellow-400 rounded-full shadow text-xl font-bold"
               title={isDark ? "Включить светлую тему" : "Включить тёмную тему"}
+              style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
             >
               {isDark ? '☀️' : '🌙'}
-            </button>
-            <button
+            </motion.button>
+            <motion.button
+              variants={btnVariants}
+              initial="rest"
+              whileHover="hover"
+              whileTap="tap"
               onClick={goToRandomHotel}
-              className="p-2 bg-pink-500 text-white rounded-full shadow hover:bg-pink-400 transition font-bold"
+              className="p-2 bg-pink-500 text-white rounded-full shadow font-bold text-xl"
               title="Случайный отель"
-            >🎲</button>
+              style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
+            >🎲</motion.button>
           </div>
         </div>
       </header>
 
       {/* Совет дня */}
       <div className="max-w-7xl mx-auto mt-6 px-4 md:px-8 lg:px-12">
-        <div className={`bg-yellow-400/90 ${isDark ? 'text-black' : 'text-black'} font-medium rounded-xl p-4 md:p-6 lg:p-8 text-center text-base md:text-lg lg:text-xl animate-pulse`}>
+        <div className={`bg-yellow-400/90 font-semibold rounded-xl p-4 md:p-6 lg:p-8 text-center text-base md:text-lg lg:text-xl animate-pulse`} style={{ color: '#222', fontFamily: "'Montserrat', Arial, sans-serif" }}>
           💡 Совет дня: {tip}
         </div>
       </div>
@@ -239,6 +278,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
             className="fixed top-[120px] left-1/2 -translate-x-1/2 z-[1200] bg-black/90 text-yellow-400 px-7 py-2 rounded-xl shadow-2xl font-bold animate-pulse border border-yellow-400"
+            style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
           >
             🏆 Секретное предложение для Душанбе: бесплатный апгрейд номера!
           </motion.div>
@@ -253,6 +293,7 @@ export default function App() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
             className="fixed top-12 left-1/2 -translate-x-1/2 z-[1200] bg-yellow-400 text-black px-8 py-3 rounded-2xl shadow-lg font-semibold text-base"
+            style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
           >
             Скопировано!
           </motion.div>
@@ -261,7 +302,7 @@ export default function App() {
 
       {/* Pull-to-refresh */}
       {showRefresh && (
-        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-yellow-400 text-black rounded-2xl px-6 py-2 z-[1100]">
+        <div className="fixed top-20 left-1/2 -translate-x-1/2 bg-yellow-400 text-black rounded-2xl px-6 py-2 z-[1100]" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
           Обнови страницу для новых данных ⭮
         </div>
       )}
@@ -270,7 +311,7 @@ export default function App() {
       {showCalendar && <div className="fixed inset-0 z-[999] bg-black/60" onClick={() => setShowCalendar(false)} />}
       {showCalendar && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none">
-          <div className={`pointer-events-auto ${isDark ? 'bg-zinc-900 text-white' : 'bg-white text-black'} rounded-2xl shadow-2xl p-6 md:p-8 w-[90%] md:w-[80%] lg:w-[60%] max-w-[800px]`}>
+          <div className={`pointer-events-auto ${isDark ? 'bg-zinc-900 text-white' : 'bg-white text-black'} rounded-2xl shadow-2xl p-6 md:p-8 w-[90%] md:w-[80%] lg:w-[60%] max-w-[800px]`} style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
             <DateRange
               ranges={dateRange}
               onChange={item => setDateRange([item.selection])}
@@ -281,19 +322,24 @@ export default function App() {
               showDateDisplay={false}
               rangeColors={['#facc15']}
             />
-            <button
+            <motion.button
+              variants={btnVariants}
+              initial="rest"
+              whileHover="hover"
+              whileTap="tap"
               onClick={() => setShowCalendar(false)}
-              className={`mt-4 w-full px-6 py-3 md:px-8 md:py-4 bg-yellow-400 text-black rounded-xl font-bold shadow hover:bg-yellow-300 text-base md:text-lg lg:text-xl transition`}
+              className="mt-4 w-full px-6 py-3 md:px-8 md:py-4 bg-yellow-400 text-black rounded-xl font-bold shadow text-base md:text-lg lg:text-xl"
+              style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
             >
               ОК
-            </button>
+            </motion.button>
           </div>
         </div>
       )}
 
       {/* Сравнение отелей */}
       {compare.length > 0 && (
-        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[1100] w-[97vw] max-w-2xl">
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[1100] w-[97vw] max-w-2xl" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
           <div className="bg-yellow-100 border border-yellow-400 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-center gap-4 shadow-xl">
             <div className="flex-1 text-black text-base font-bold">Сравнение отелей:</div>
             <div className="flex gap-3">
@@ -308,15 +354,20 @@ export default function App() {
                 </div>
               ))}
             </div>
-            <button
+            <motion.button
+              variants={btnVariants}
+              initial="rest"
+              whileHover="hover"
+              whileTap="tap"
               onClick={clearCompare}
               className="ml-2 bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-300 transition"
+              style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
             >
               Очистить
-            </button>
+            </motion.button>
           </div>
           <div className="bg-white border border-yellow-200 rounded-xl mt-3 p-3 overflow-x-auto">
-            <table className="min-w-full text-sm text-black">
+            <table className="min-w-full text-sm text-black" style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
               <thead>
                 <tr>
                   <th className="font-bold p-2">Параметр</th>
@@ -368,63 +419,69 @@ export default function App() {
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
+                style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
               >
-                <select value={city} onChange={e => setCity(e.target.value)}
-                  className="bg-white text-black rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
-                >
-                  <option value="">📍 Все города</option>
-                  {cities.map(c => <option key={c} value={c}>📍 {c}</option>)}
-                </select>
-                <button
+                <Dropdown
+                  value={city}
+                  options={[{ value: '', label: '📍 Все города' }, ...cities.map(c => ({ value: c, label: `📍 ${c}` }))]}
+                  onChange={setCity}
+                  label="Город"
+                  dark={isDark}
+                  className="w-full sm:w-auto"
+                />
+                <motion.button
+                  variants={btnVariants}
+                  initial="rest"
+                  whileHover="hover"
+                  whileTap="tap"
                   onClick={() => setShowCalendar(true)}
-                  className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 rounded-xl bg-white/10 border border-yellow-400/40 font-semibold text-black flex items-center gap-3 text-sm md:text-base lg:text-lg transition"
-                  style={{ minWidth: 200 }}
+                  className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 rounded-xl bg-white/10 border border-yellow-400/40 font-bold text-black flex items-center gap-3 text-sm md:text-base lg:text-lg"
+                  style={{ minWidth: 200, fontFamily: "'Montserrat', Arial, sans-serif" }}
                 >
                   📅 {dateDisplay}
-                </button>
-                <select
+                </motion.button>
+                <Dropdown
                   value={guests}
-                  onChange={e => setGuests(+e.target.value)}
-                  className="bg-white text-black rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
-                >
-                  {[1, 2, 3, 4].map(n => (
-                    <option key={n} value={n}>
-                      👤 {n} взросл{n > 1 ? 'ых' : 'ый'}
-                    </option>
-                  ))}
-                </select>
-                <select
+                  options={guestOptions}
+                  onChange={v => setGuests(Number(v))}
+                  label="👤 Гости"
+                  dark={isDark}
+                  className="w-full sm:w-auto"
+                />
+                <Dropdown
                   value={sort}
-                  onChange={e => setSort(e.target.value)}
-                  className="bg-white text-black rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
-                >
-                  <option value="">Без сортировки</option>
-                  {sortVariants.map(o => (
-                    <option key={o.value} value={o.value}>
-                      {o.label}
-                    </option>
-                  ))}
-                </select>
+                  options={sortVariants}
+                  onChange={setSort}
+                  label="Сортировка"
+                  dark={isDark}
+                  className="w-full sm:w-auto"
+                />
                 {/* Быстрый поиск */}
                 <input
                   ref={searchRef}
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Поиск по названию или описанию..."
-                  className="flex-1 min-w-[150px] max-w-xs rounded-lg px-4 py-3 border border-yellow-400 bg-white text-black text-sm md:text-base"
+                  className="flex-1 min-w-[150px] max-w-xs rounded-lg px-4 py-3 border border-yellow-400 bg-white text-black text-sm md:text-base font-semibold"
+                  style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                 />
-                <button
+                <motion.button
+                  variants={btnVariants}
+                  initial="rest"
+                  whileHover="hover"
+                  whileTap="tap"
                   onClick={resetFilters}
                   className="ml-auto bg-yellow-400/90 hover:bg-yellow-300 text-black rounded-lg font-bold px-6 py-3 md:px-8 md:py-4 transition text-sm md:text-base"
+                  style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                 >
                   Сбросить
-                </button>
+                </motion.button>
               </motion.div>
 
               <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-8 px-4 md:px-8 xl:px-0">
                 {/* Sidebar */}
                 <aside className="hidden xl:block sticky top-32 self-start">
-                  <div className={`${sidebarBg} border border-yellow-100 p-8 rounded-2xl shadow-2xl`}>
+                  <div className={`${sidebarBg} border border-yellow-100 p-8 rounded-2xl shadow-2xl`} style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
                     <h3 className="text-2xl font-bold text-yellow-400 mb-5">Фильтры</h3>
                     <label className={`block mb-4 ${filterText}`}>
                       Цена от:
@@ -433,7 +490,8 @@ export default function App() {
                         placeholder="Мин"
                         value={minPrice}
                         onChange={e => setMinPrice(e.target.value)}
-                        className="w-full bg-white px-4 py-3 rounded mt-2 mb-3 border"
+                        className="w-full bg-white px-4 py-3 rounded mt-2 mb-3 border font-semibold"
+                        style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                       />
                     </label>
                     <label className={`block mb-4 ${filterText}`}>
@@ -443,7 +501,8 @@ export default function App() {
                         placeholder="Макс"
                         value={maxPrice}
                         onChange={e => setMaxPrice(e.target.value)}
-                        className="w-full bg-white px-4 py-3 rounded mt-2 mb-3 border"
+                        className="w-full bg-white px-4 py-3 rounded mt-2 mb-3 border font-semibold"
+                        style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                       />
                     </label>
                     <label className={`block mb-4 ${filterText}`}>
@@ -451,7 +510,8 @@ export default function App() {
                       <select
                         value={stars}
                         onChange={e => setStars(e.target.value)}
-                        className="w-full bg-white px-4 py-3 rounded mt-2 border"
+                        className="w-full bg-white px-4 py-3 rounded mt-2 border font-semibold"
+                        style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                       >
                         <option value="">Любые</option>
                         <option value="3">★★★</option>
@@ -487,6 +547,7 @@ export default function App() {
                     initial={{ opacity: 0, y: -14 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.48, delay: 0.16 }}
+                    style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                   >
                     Наши отели
                   </motion.h2>
@@ -507,7 +568,7 @@ export default function App() {
                         className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8"
                         initial="hidden"
                         animate="visible"
-                        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
+                        variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.08 } } }}
                       >
                         {filteredHotels.length === 0 ? (
                           <div className="col-span-full text-center text-gray-500 text-lg py-12">
@@ -517,54 +578,68 @@ export default function App() {
                           filteredHotels.map((h, i) => (
                             <motion.div
                               key={h.id}
-                              initial={{ opacity: 0, y: 35, scale: 0.97 }}
-                              animate={{ opacity: 1, y: 0, scale: 1 }}
-                              transition={{ delay: i * 0.1 }}
-                              whileHover={{ y: -12, scale: 1.05, boxShadow: '0 20px 60px #ffbb3355' }}
-                              className={`hotel-card ${cardBg} rounded-3xl shadow-2xl overflow-hidden hover:border-yellow-400 transition-all relative`}
+                              variants={cardVariants}
+                              initial="initial"
+                              animate="animate"
+                              whileHover="whileHover"
+                              whileTap="whileTap"
+                              className={`hotel-card flex flex-col justify-between ${cardBg} rounded-3xl shadow-2xl overflow-hidden hover:border-yellow-400 transition-all relative min-h-[500px]`}
+                              style={{ height: '500px', cursor: 'pointer', fontFamily: "'Montserrat', Arial, sans-serif" }}
                             >
                               {/* ИЗБРАННОЕ */}
-                              <button
+                              <motion.button
+                                variants={btnVariants}
+                                initial="rest"
+                                whileHover="hover"
+                                whileTap="tap"
                                 onClick={e => { e.preventDefault(); setFavs(favs.includes(h.id) ? favs.filter(x => x !== h.id) : [...favs, h.id]); }}
                                 className={`absolute top-3 right-4 z-10 text-xl rounded-full p-1 shadow-xl
                                   ${favs.includes(h.id) ? 'text-pink-400 bg-yellow-200' : 'text-gray-400 bg-black/10 hover:text-yellow-400'}
                                 `}
                                 title={favs.includes(h.id) ? "Убрать из любимых" : "В любимые"}
+                                style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                               >
                                 {favs.includes(h.id) ? '❤️' : '🤍'}
-                              </button>
+                              </motion.button>
                               {/* СРАВНЕНИЕ */}
-                              <button
+                              <motion.button
+                                variants={btnVariants}
+                                initial="rest"
+                                whileHover="hover"
+                                whileTap="tap"
                                 onClick={e => { e.preventDefault(); toggleCompare(h.id); }}
                                 className={`absolute top-3 left-4 z-10 text-lg rounded-full p-1 shadow
                                   ${compare.includes(h.id) ? 'bg-yellow-400 text-black font-bold' : 'bg-yellow-100 text-yellow-500'}
                                 `}
                                 title={compare.includes(h.id) ? "Убрать из сравнения" : "В сравнение"}
+                                style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
                               >
                                 {compare.includes(h.id) ? '✔' : '≡'}
-                              </button>
-                              <Link to={`/hotel/${h.id}`}>
+                              </motion.button>
+                              <Link to={`/hotel/${h.id}`} className="flex-1 flex flex-col">
                                 <img
                                   src={h.images[0]}
                                   alt={h.name}
                                   className="rounded-t-3xl h-56 w-full object-cover group-hover:scale-105 transition-transform duration-300"
                                 />
-                                <div className="p-6">
-                                  <div className="flex gap-1 mb-2">
-                                    {[...Array(h.stars || 4)].map((_, j) => (
-                                      <span key={j} className="text-yellow-400 text-xl">★</span>
-                                    ))}
-                                    {[...Array(5 - (h.stars || 4))].map((_, j) => (
-                                      <span key={j} className={`${starsGray} text-xl`}>★</span>
-                                    ))}
+                                <div className="p-6 flex-1 flex flex-col justify-between">
+                                  <div>
+                                    <div className="flex gap-1 mb-2">
+                                      {[...Array(h.stars || 4)].map((_, j) => (
+                                        <span key={j} className="text-yellow-400 text-xl">★</span>
+                                      ))}
+                                      {[...Array(5 - (h.stars || 4))].map((_, j) => (
+                                        <span key={j} className={`${starsGray} text-xl`}>★</span>
+                                      ))}
+                                    </div>
+                                    <h3 className="text-lg md:text-xl font-bold mb-2">{h.name}</h3>
+                                    <p className={`${descText} text-base mb-4 line-clamp-2`}>{h.description}</p>
+                                    <div className="flex gap-2 mb-4">
+                                      {h.wifi && <span className="bg-blue-600/10 px-3 rounded text-blue-600 font-semibold">📶 Wi-Fi</span>}
+                                      {h.breakfast && <span className="bg-orange-500/10 px-3 rounded text-orange-500 font-semibold">🍳 Завтрак</span>}
+                                    </div>
                                   </div>
-                                  <h3 className="text-lg md:text-xl font-semibold mb-2">{h.name}</h3>
-                                  <p className={`${descText} text-base mb-4 line-clamp-2`}>{h.description}</p>
-                                  <div className="flex gap-2 mb-4">
-                                    {h.wifi && <span className="bg-blue-600/10 px-3 rounded text-blue-600">📶 Wi-Fi</span>}
-                                    {h.breakfast && <span className="bg-orange-500/10 px-3 rounded text-orange-500">🍳 Завтрак</span>}
-                                  </div>
-                                  <span className="block text-lg md:text-xl bg-gradient-to-r from-yellow-400 to-orange-400/90 px-5 py-2 rounded-lg font-extrabold shadow-lg w-fit text-black">
+                                  <span className="block text-lg md:text-xl bg-gradient-to-r from-yellow-400 to-orange-400/90 px-5 py-2 rounded-lg font-extrabold shadow-lg w-fit text-black mt-auto">
                                     {h.price}$ × {guests} × {nights} = <b>{h.price * guests * nights}$</b>
                                   </span>
                                 </div>
@@ -581,10 +656,18 @@ export default function App() {
               {/* Мобильная навигация: только НАВЕРХ! */}
               <div className={`fixed bottom-0 left-0 w-full z-[100] sm:hidden`}>
                 <div className={`flex ${isDark ? 'bg-zinc-900' : 'bg-white'} border-t border-yellow-200 justify-center items-center py-3 px-4 shadow-2xl`}>
-                  <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center text-yellow-400 font-bold">
+                  <motion.button
+                    variants={btnVariants}
+                    initial="rest"
+                    whileHover="hover"
+                    whileTap="tap"
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    className="flex flex-col items-center text-yellow-400 font-bold"
+                    style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
+                  >
                     <span className="text-2xl">⬆️</span>
                     <span className="text-xs">Наверх</span>
-                  </button>
+                  </motion.button>
                 </div>
               </div>
             </>
@@ -595,7 +678,7 @@ export default function App() {
       </Routes>
 
       {/* FOOTER */}
-      <footer className={`py-6 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-12`}>
+      <footer className={`py-6 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-12`} style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}>
         © 2025 Ниязов Амир — Лучшие отели Таджикистана
       </footer>
 
@@ -603,9 +686,13 @@ export default function App() {
       <AnimatePresence>
         {scrollUp && (
           <motion.button
+            variants={btnVariants}
+            initial="rest"
+            whileHover="hover"
+            whileTap="tap"
             onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             className="fixed bottom-20 right-6 z-[99] w-14 h-14 rounded-full bg-yellow-400 hover:bg-yellow-300 text-black font-black text-3xl shadow-xl flex items-center justify-center transition-all hidden sm:flex"
-            initial={{ opacity: 0, scale: 0.7 }}
+            style={{ fontFamily: "'Montserrat', Arial, sans-serif" }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.8 }}
           >
