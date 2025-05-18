@@ -1,13 +1,18 @@
 // src/pages/HotelDetail.js
 import React, { useState, useMemo, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { hotels } from '../data/hotels';
 import BookingModal from '../components/BookingModal';
+import { DateRange } from 'react-date-range';
+import { ru } from 'date-fns/locale';
+import jsPDF from 'jspdf'; // npm i jspdf
+import 'react-date-range/dist/styles.css';
+import 'react-date-range/dist/theme/default.css';
 
 const featuresList = [
   { key: 'wifi',      label: 'Бесплатный Wi-Fi',    icon: '📶' },
   { key: 'breakfast', label: 'Завтрак включён',     icon: '🍳' },
-  { key: 'parking',   label: 'Бесплатная парковка',  icon: '🅿️' },
+  { key: 'parking',   label: 'Бесплатная парковка', icon: '🅿️' },
   { key: 'bar',       label: 'Бар',                 icon: '🍸' },
   { key: 'restaurant',label: 'Ресторан',            icon: '🍽️' },
   { key: 'fitness',   label: 'Фитнес-центр',        icon: '🏋️' },
@@ -24,21 +29,31 @@ export default function HotelDetail({ onCopy }) {
 
   const [modal, setModal] = useState({ open: false, roomType: '', total: 0 });
   const [imgIdx, setImgIdx] = useState(0);
-  const today = new Date().toISOString().slice(0, 10);
-  const tmr = new Date(); tmr.setDate(tmr.getDate() + 1);
-  const [start, setStart] = useState(today);
-  const [end, setEnd] = useState(tmr.toISOString().slice(0, 10));
+
+  // DateRange календарь
+  const today = new Date();
+  const tomorrow = new Date(today);
+  tomorrow.setDate(today.getDate() + 1);
+  const [dateRange, setDateRange] = useState([{ startDate: today, endDate: tomorrow, key: 'selection' }]);
+  const [showCalendar, setShowCalendar] = useState(false);
+
   const [guests, setGuests] = useState(1);
   const [showCopied, setShowCopied] = useState(false);
 
+  // Для BookingModal
+  const start = useMemo(() => dateRange[0].startDate.toISOString().slice(0, 10), [dateRange]);
+  const end = useMemo(() => dateRange[0].endDate.toISOString().slice(0, 10), [dateRange]);
   const nights = useMemo(() => {
-    const d1 = new Date(start), d2 = new Date(end);
-    const diff = (d2 - d1) / (1000 * 60 * 60 * 24);
+    const { startDate, endDate } = dateRange[0];
+    const diff = (endDate - startDate) / (1000 * 60 * 60 * 24);
     return diff > 0 ? diff : 1;
-  }, [start, end]);
+  }, [dateRange]);
 
-  async function handleBook(data) {
+  async function handleBook(data, needPDF = false) {
     try {
+      if (needPDF) {
+        generatePDF(hotel, modal.roomType, modal.total, dateRange, guests, data);
+      }
       alert(
         `Бронирование подтверждено!\n\n` +
         `Отель: ${hotel.name}\n` +
@@ -47,12 +62,34 @@ export default function HotelDetail({ onCopy }) {
         `Даты: ${start} — ${end}\n` +
         `Гостей: ${guests}\n` +
         `Имя: ${data.name}\n` +
-        `Тел: ${data.phone}`
+        `Тел: ${data.phone}` +
+        (needPDF ? '\n\nPDF сохранён!' : '')
       );
       setModal({ open: false, roomType: '', total: 0 });
     } catch (e) {
       alert("Ошибка бронирования: " + e.message);
     }
+  }
+
+  // PDF генератор — только на английском!
+  function generatePDF(hotel, roomType, total, dateRange, guests, data = {}) {
+    const doc = new jsPDF();
+    doc.setFontSize(16);
+    doc.text("Booking Confirmation", 20, 20);
+    doc.setFontSize(12);
+    doc.text(`Hotel: ${hotel.name}`, 20, 40);
+    doc.text(`Address: ${hotel.address}`, 20, 50);
+    doc.text(`Room type: ${roomType}`, 20, 60);
+    doc.text(
+      `Dates: ${dateRange[0].startDate.toLocaleDateString('en-GB')} - ${dateRange[0].endDate.toLocaleDateString('en-GB')}`,
+      20, 70
+    );
+    doc.text(`Guests: ${guests}`, 20, 80);
+    doc.text(`Total: ${total}$`, 20, 90);
+    doc.text(`Name: ${data.name || '-'}`, 20, 100);
+    doc.text(`Phone: ${data.phone || '-'}`, 20, 110);
+    doc.text(`Created: ${new Date().toLocaleString('en-GB')}`, 20, 120);
+    doc.save("booking-confirmation.pdf");
   }
 
   if (!hotel) return (
@@ -66,7 +103,6 @@ export default function HotelDetail({ onCopy }) {
     ? (hotel.reviewsList.reduce((sum, r) => sum + r.rating, 0) / hotel.reviewsList.length).toFixed(1)
     : null;
 
-  // Копирование с уведомлением
   function handleCopyAddress(addr) {
     navigator.clipboard.writeText(addr || '');
     setShowCopied(true);
@@ -74,7 +110,6 @@ export default function HotelDetail({ onCopy }) {
     if (typeof onCopy === 'function') onCopy(addr);
   }
 
-  // Web Share API
   function handleShare() {
     if (navigator.share) {
       navigator.share({
@@ -100,8 +135,7 @@ export default function HotelDetail({ onCopy }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white flex flex-col font-sans">
-
-      {/* Кнопка назад — моб и ПК */}
+      {/* Кнопка назад */}
       <button
         onClick={() => navigate(-1)}
         className="fixed top-4 left-4 z-50 bg-yellow-400/90 hover:bg-yellow-300 text-black font-bold px-4 py-2 rounded-full shadow-2xl text-lg transition md:flex hidden"
@@ -118,7 +152,6 @@ export default function HotelDetail({ onCopy }) {
       </div>
 
       <div className="flex flex-col gap-5 max-w-5xl mx-auto px-4 sm:px-6 md:px-8 py-6 w-full">
-
         {/* Заголовок и кнопки */}
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 mb-2">
           <h1 className="text-2xl sm:text-3xl font-bold text-yellow-400">{hotel.name}</h1>
@@ -130,7 +163,6 @@ export default function HotelDetail({ onCopy }) {
             <span className="bg-pink-600/90 text-xs font-bold rounded-xl py-2 px-3 ml-2 select-none shadow">Гарантия лучшей цены</span>
           </div>
         </div>
-
         {/* Средний рейтинг и отзывы */}
         {avgRating && (
           <div className="flex items-center gap-1 mt-2 text-sm">
@@ -230,22 +262,15 @@ export default function HotelDetail({ onCopy }) {
           </div>
         )}
 
-        {/* Даты и гости */}
+        {/* Даты и гости (с DateRange календарём) */}
         <section className="rounded-2xl bg-white/5 p-4 flex flex-wrap gap-3 items-center mb-4 shadow-lg">
           <h2 className="w-full text-lg font-semibold text-yellow-400 mb-2">Выберите даты и гостей</h2>
-          <input
-            type="date"
-            value={start}
-            onChange={e => setStart(e.target.value)}
-            className="px-3 py-1 rounded-lg bg-white/15 text-white text-sm focus:outline-yellow-400"
-          />
-          <span className="text-lg">→</span>
-          <input
-            type="date"
-            value={end}
-            onChange={e => setEnd(e.target.value)}
-            className="px-3 py-1 rounded-lg bg-white/15 text-white text-sm focus:outline-yellow-400"
-          />
+          <button
+            onClick={() => setShowCalendar(true)}
+            className="px-4 py-2 bg-yellow-400/90 hover:bg-yellow-500 rounded-xl text-black font-semibold shadow transition-all"
+          >
+            📅 {dateRange[0].startDate.toLocaleDateString()} — {dateRange[0].endDate.toLocaleDateString()}
+          </button>
           <select
             value={guests}
             onChange={e => setGuests(Number(e.target.value))}
@@ -260,8 +285,34 @@ export default function HotelDetail({ onCopy }) {
             Вы выбрали <b>{nights}</b> ночей × <b>{guests}</b> чел.
           </div>
         </section>
+        {/* Календарь pop-up */}
+        {showCalendar && (
+          <>
+            <div className="fixed inset-0 z-[999] bg-black/60" onClick={() => setShowCalendar(false)} />
+            <div className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none">
+              <div className="pointer-events-auto bg-zinc-900 rounded-2xl shadow-2xl p-6 w-[95vw] max-w-md mx-auto">
+                <DateRange
+                  ranges={dateRange}
+                  onChange={item => setDateRange([item.selection])}
+                  minDate={today}
+                  locale={ru}
+                  months={window.innerWidth < 640 ? 1 : 2}
+                  direction="horizontal"
+                  showDateDisplay={false}
+                  rangeColors={['#facc15']}
+                />
+                <button
+                  onClick={() => setShowCalendar(false)}
+                  className="mt-4 w-full px-6 py-3 bg-yellow-400 text-black rounded-xl font-bold shadow hover:bg-yellow-300 text-base transition"
+                >
+                  ОК
+                </button>
+              </div>
+            </div>
+          </>
+        )}
 
-        {/* Кнопка к номерам */}
+        {/* Кнопка к номерам и отзывам */}
         <div className="flex gap-3 flex-wrap justify-end mb-3">
           <button
             className="px-5 py-2 bg-yellow-400/90 hover:bg-yellow-500 rounded-xl font-bold text-black text-sm shadow transition active:scale-95"
@@ -289,7 +340,7 @@ export default function HotelDetail({ onCopy }) {
                     className="w-full h-32 object-cover"
                   />
                   <div className="p-4 flex flex-col gap-2 flex-1 justify-between">
-                    <h3 className="text-lg font-bold">{type} Room</h3>
+                    <h3 className="text-lg font-bold">{type} номер</h3>
                     <p className="text-sm">Цена: <b>{price}$</b> / ночь</p>
                     <p className="text-sm">
                       Итого: <b className="text-yellow-400">{total}$</b>
@@ -332,7 +383,7 @@ export default function HotelDetail({ onCopy }) {
         )}
 
       </div>
-      {/* Модалка */}
+      {/* Модалка — прокидываем PDF-функцию */}
       <BookingModal
         open={modal.open}
         onClose={() => setModal({ open: false, roomType: '', total: 0 })}
@@ -344,6 +395,7 @@ export default function HotelDetail({ onCopy }) {
         start={start}
         end={end}
         onBook={handleBook}
+        onPDF={(data) => generatePDF(hotel, modal.roomType, modal.total, dateRange, guests, data)}
       />
     </div>
   );
