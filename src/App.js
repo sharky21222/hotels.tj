@@ -30,10 +30,11 @@ const tips = [
 ];
 
 export default function App() {
-  // Тема
+  // --- Тема ---
   const [theme, setTheme] = useState(() => {
     const stored = localStorage.getItem('theme');
-    return stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    if (stored) return stored;
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
   useEffect(() => {
     if (theme === 'dark') document.documentElement.classList.add('dark');
@@ -41,12 +42,12 @@ export default function App() {
     localStorage.setItem('theme', theme);
   }, [theme]);
 
-  // Даты
+  // --- Даты ---
   const today = new Date();
   const tomorrow = new Date(today);
   tomorrow.setDate(today.getDate() + 1);
 
-  // Состояния
+  // --- Состояния ---
   const [dateRange, setDateRange] = useState([{ startDate: today, endDate: tomorrow, key: 'selection' }]);
   const [showCalendar, setShowCalendar] = useState(false);
   const [city, setCity] = useState('');
@@ -57,14 +58,13 @@ export default function App() {
   const [onlyBreakfast, setOnlyBreakfast] = useState(false);
   const [stars, setStars] = useState('');
   const [sort, setSort] = useState('');
-  const [filterOpen, setFilterOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [scrollUp, setScrollUp] = useState(false);
   const [showRefresh, setShowRefresh] = useState(false);
   const [tip, setTip] = useState('');
   const [showCopied, setShowCopied] = useState(false);
 
-  // Новое: Избранное
+  // --- Избранное ---
   const [favs, setFavs] = useState(() => {
     try {
       return JSON.parse(localStorage.getItem('favs_hotels') || '[]');
@@ -72,24 +72,24 @@ export default function App() {
   });
   useEffect(() => { localStorage.setItem('favs_hotels', JSON.stringify(favs)); }, [favs]);
 
-  // Новое: Поиск
+  // --- Поиск ---
   const [search, setSearch] = useState('');
   const searchRef = useRef();
 
-  // Инициализация
+  // --- Инициализация ---
   useEffect(() => {
     setTimeout(() => setLoading(false), 600);
     setTip(tips[Math.floor(Math.random() * tips.length)]);
   }, []);
 
-  // Скролл
+  // --- Скролл ---
   useEffect(() => {
     const onScroll = () => setScrollUp(window.scrollY > 420);
     window.addEventListener('scroll', onScroll);
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Pull-to-refresh
+  // --- Pull-to-refresh ---
   const touchStart = useRef(0);
   const touchMove = useRef(0);
   useEffect(() => {
@@ -109,19 +109,19 @@ export default function App() {
     };
   }, []);
 
-  // Сброс фильтров
+  // --- Сброс фильтров ---
   const resetFilters = () => {
     setCity(''); setMinPrice(''); setMaxPrice(''); setOnlyWifi(false); setOnlyBreakfast(false); setStars(''); setSort('');
   };
 
-  // Количество ночей
+  // --- Количество ночей ---
   const nights = useMemo(() => {
     const { startDate, endDate } = dateRange[0];
     const diff = (endDate - startDate) / (1000 * 60 * 60 * 24);
     return diff > 0 ? diff : 1;
   }, [dateRange]);
 
-  // Фильтрация и поиск
+  // --- Фильтрация и поиск ---
   const filteredHotels = useMemo(() => {
     let data = hotels.filter(h =>
       (!city || h.city === city) &&
@@ -145,18 +145,18 @@ export default function App() {
     return data;
   }, [city, minPrice, maxPrice, onlyWifi, onlyBreakfast, stars, sort, search, favs]);
 
-  // Формат даты
+  // --- Формат даты ---
   const fmt = d => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
   const dateDisplay = `${fmt(dateRange[0].startDate)} — ${fmt(dateRange[0].endDate)}`;
 
-  // Копирование
+  // --- Копирование ---
   function handleCopy(txt) {
     navigator.clipboard.writeText(txt);
     setShowCopied(true);
     setTimeout(() => setShowCopied(false), 1300);
   }
 
-  // Быстрая навигация
+  // --- Быстрая навигация ---
   const navigate = useNavigate();
   function goToRandomHotel() {
     const ids = filteredHotels.map(h => h.id);
@@ -165,27 +165,34 @@ export default function App() {
     navigate(`/hotel/${randId}`);
   }
 
-  // Секретное предложение
+  // --- Сравнение отелей ---
+  const [compare, setCompare] = useState([]);
+  function toggleCompare(id) {
+    setCompare(prev =>
+      prev.includes(id)
+        ? prev.filter(x => x !== id)
+        : prev.length < 3 ? [...prev, id] : prev
+    );
+  }
+  function clearCompare() { setCompare([]); }
+  const compareHotels = hotels.filter(h => compare.includes(h.id));
+
+  // --- Секретное предложение ---
   const showSecret = city === "Душанбе";
 
-  // Баннер-акция
-  const showLongStay = nights >= 3;
-
-  // Добавить/убрать из избранного
-  function toggleFav(id) {
-    setFavs(favs.includes(id) ? favs.filter(x => x !== id) : [...favs, id]);
-  }
+  // --- Цвета темы ---
+  const isDark = theme === 'dark';
+  const mainBg = isDark ? 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-900 text-white' : 'bg-white text-black';
+  const cardBg = isDark ? 'bg-zinc-900 border-yellow-400/10' : 'bg-white border-yellow-200';
+  const sidebarBg = isDark ? 'bg-zinc-800' : 'bg-yellow-50';
+  const filterText = isDark ? 'text-white/90' : 'text-black/90';
+  const descText = isDark ? 'text-gray-200' : 'text-gray-700';
+  const starsGray = isDark ? 'text-gray-600' : 'text-gray-300';
 
   return (
-    <div className={`min-h-screen font-sans relative pb-24 transition-colors duration-500 ${
-      theme === 'dark'
-        ? 'bg-gradient-to-br from-zinc-800 via-zinc-700 to-zinc-900 text-white'
-        : 'bg-gradient-to-br from-zinc-900 via-zinc-800 to-zinc-950 text-white'
-    }`}>
+    <div className={`min-h-screen font-sans relative pb-24 transition-colors duration-500 ${mainBg}`}>
       {/* HEADER */}
-      <header className={`sticky top-0 z-50 transition-colors duration-500 ${
-        theme === 'dark' ? 'bg-white/10' : 'bg-black/80'
-      } backdrop-blur-xl shadow-2xl`}>
+      <header className={`sticky top-0 z-50 ${isDark ? 'bg-white/10' : 'bg-white/90'} backdrop-blur-xl shadow-2xl`}>
         <div className="flex items-center justify-between mx-auto px-4 md:px-8 h-20 md:h-28">
           <Link to="/" className="flex items-center gap-2">
             {title.map((c, i) => (
@@ -202,11 +209,11 @@ export default function App() {
           </Link>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => setTheme(prev => prev === 'light' ? 'dark' : 'light')}
+              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
               className="p-2 bg-yellow-400 rounded-full shadow hover:scale-110 transition"
-              title={theme === 'dark' ? "Включить светлую тему" : "Включить тёмную тему"}
+              title={isDark ? "Включить светлую тему" : "Включить тёмную тему"}
             >
-              {theme === 'dark' ? '☀️' : '🌙'}
+              {isDark ? '☀️' : '🌙'}
             </button>
             <button
               onClick={goToRandomHotel}
@@ -219,24 +226,10 @@ export default function App() {
 
       {/* Совет дня */}
       <div className="max-w-7xl mx-auto mt-6 px-4 md:px-8 lg:px-12">
-        <div className="bg-yellow-400/80 text-black font-medium rounded-xl p-4 md:p-6 lg:p-8 text-center text-base md:text-lg lg:text-xl animate-pulse">
+        <div className={`bg-yellow-400/90 ${isDark ? 'text-black' : 'text-black'} font-medium rounded-xl p-4 md:p-6 lg:p-8 text-center text-base md:text-lg lg:text-xl animate-pulse`}>
           💡 Совет дня: {tip}
         </div>
       </div>
-
-      {/* Баннер-акция */}
-      <AnimatePresence>
-        {showLongStay && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.85 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.9 }}
-            className="fixed top-[90px] left-1/2 -translate-x-1/2 z-[1200] bg-gradient-to-r from-pink-500 via-yellow-400 to-pink-400 text-black font-bold px-6 py-3 rounded-2xl shadow-2xl border-2 border-yellow-300 animate-bounce text-base"
-          >
-            🎁 Скидка 10% за бронь от 3 ночей!
-          </motion.div>
-        )}
-      </AnimatePresence>
 
       {/* Секретное предложение */}
       <AnimatePresence>
@@ -245,7 +238,7 @@ export default function App() {
             initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -30 }}
-            className="fixed top-[145px] left-1/2 -translate-x-1/2 z-[1200] bg-black/90 text-yellow-400 px-7 py-2 rounded-xl shadow-2xl font-bold animate-pulse border border-yellow-400"
+            className="fixed top-[120px] left-1/2 -translate-x-1/2 z-[1200] bg-black/90 text-yellow-400 px-7 py-2 rounded-xl shadow-2xl font-bold animate-pulse border border-yellow-400"
           >
             🏆 Секретное предложение для Душанбе: бесплатный апгрейд номера!
           </motion.div>
@@ -277,7 +270,7 @@ export default function App() {
       {showCalendar && <div className="fixed inset-0 z-[999] bg-black/60" onClick={() => setShowCalendar(false)} />}
       {showCalendar && (
         <div className="fixed inset-0 z-[1000] flex items-center justify-center pointer-events-none">
-          <div className="pointer-events-auto bg-zinc-900 dark:bg-zinc-800 rounded-2xl shadow-2xl p-6 md:p-8 w-[90%] md:w-[80%] lg:w-[60%] max-w-[800px]">
+          <div className={`pointer-events-auto ${isDark ? 'bg-zinc-900 text-white' : 'bg-white text-black'} rounded-2xl shadow-2xl p-6 md:p-8 w-[90%] md:w-[80%] lg:w-[60%] max-w-[800px]`}>
             <DateRange
               ranges={dateRange}
               onChange={item => setDateRange([item.selection])}
@@ -290,10 +283,75 @@ export default function App() {
             />
             <button
               onClick={() => setShowCalendar(false)}
-              className="mt-4 w-full px-6 py-3 md:px-8 md:py-4 bg-yellow-400 text-black rounded-xl font-bold shadow hover:bg-yellow-300 text-base md:text-lg lg:text-xl transition"
+              className={`mt-4 w-full px-6 py-3 md:px-8 md:py-4 bg-yellow-400 text-black rounded-xl font-bold shadow hover:bg-yellow-300 text-base md:text-lg lg:text-xl transition`}
             >
               ОК
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* Сравнение отелей */}
+      {compare.length > 0 && (
+        <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-[1100] w-[97vw] max-w-2xl">
+          <div className="bg-yellow-100 border border-yellow-400 rounded-2xl px-5 py-4 flex flex-col sm:flex-row items-center gap-4 shadow-xl">
+            <div className="flex-1 text-black text-base font-bold">Сравнение отелей:</div>
+            <div className="flex gap-3">
+              {compareHotels.map(h => (
+                <div key={h.id} className="flex flex-col items-center bg-white rounded-xl border px-3 py-2">
+                  <img src={h.images[0]} alt={h.name} className="w-14 h-14 object-cover rounded-lg mb-1" />
+                  <span className="text-sm font-bold">{h.name}</span>
+                  <button
+                    onClick={() => toggleCompare(h.id)}
+                    className="text-xs text-red-500 underline mt-1"
+                  >Убрать</button>
+                </div>
+              ))}
+            </div>
+            <button
+              onClick={clearCompare}
+              className="ml-2 bg-yellow-400 text-black px-4 py-2 rounded-lg font-bold hover:bg-yellow-300 transition"
+            >
+              Очистить
+            </button>
+          </div>
+          <div className="bg-white border border-yellow-200 rounded-xl mt-3 p-3 overflow-x-auto">
+            <table className="min-w-full text-sm text-black">
+              <thead>
+                <tr>
+                  <th className="font-bold p-2">Параметр</th>
+                  {compareHotels.map(h => (
+                    <th className="font-bold p-2" key={h.id}>{h.name}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="p-2">Город</td>
+                  {compareHotels.map(h => <td className="p-2" key={h.id}>{h.city}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-2">Цена</td>
+                  {compareHotels.map(h => <td className="p-2" key={h.id}>{h.price}$</td>)}
+                </tr>
+                <tr>
+                  <td className="p-2">Звезды</td>
+                  {compareHotels.map(h => <td className="p-2" key={h.id}>{h.stars || 4}★</td>)}
+                </tr>
+                <tr>
+                  <td className="p-2">Wi-Fi</td>
+                  {compareHotels.map(h => <td className="p-2" key={h.id}>{h.wifi ? 'Да' : 'Нет'}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-2">Завтрак</td>
+                  {compareHotels.map(h => <td className="p-2" key={h.id}>{h.breakfast ? 'Да' : 'Нет'}</td>)}
+                </tr>
+                <tr>
+                  <td className="p-2">Описание</td>
+                  {compareHotels.map(h => <td className="p-2" key={h.id}>{h.description.slice(0, 45)}...</td>)}
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       )}
@@ -306,20 +364,20 @@ export default function App() {
             <>
               {/* Filter Bar */}
               <motion.div
-                className="max-w-7xl mx-auto flex flex-wrap gap-4 md:gap-6 bg-white/10 dark:bg-zinc-800/70 rounded-2xl p-6 md:p-8 mt-8 mb-8 border border-white/10"
+                className={`max-w-7xl mx-auto flex flex-wrap gap-4 md:gap-6 ${isDark ? 'bg-white/10' : 'bg-yellow-50'} rounded-2xl p-6 md:p-8 mt-8 mb-8 border border-white/10`}
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4 }}
               >
                 <select value={city} onChange={e => setCity(e.target.value)}
-                  className="bg-white text-black dark:bg-zinc-700 dark:text-white rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
+                  className="bg-white text-black rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
                 >
                   <option value="">📍 Все города</option>
                   {cities.map(c => <option key={c} value={c}>📍 {c}</option>)}
                 </select>
                 <button
                   onClick={() => setShowCalendar(true)}
-                  className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 rounded-xl bg-white/10 border border-yellow-400/40 font-semibold text-white flex items-center gap-3 text-sm md:text-base lg:text-lg transition"
+                  className="w-full sm:w-auto px-6 py-3 md:px-8 md:py-4 rounded-xl bg-white/10 border border-yellow-400/40 font-semibold text-black flex items-center gap-3 text-sm md:text-base lg:text-lg transition"
                   style={{ minWidth: 200 }}
                 >
                   📅 {dateDisplay}
@@ -327,7 +385,7 @@ export default function App() {
                 <select
                   value={guests}
                   onChange={e => setGuests(+e.target.value)}
-                  className="bg-white text-black dark:bg-zinc-700 dark:text-white rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
+                  className="bg-white text-black rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
                 >
                   {[1, 2, 3, 4].map(n => (
                     <option key={n} value={n}>
@@ -338,7 +396,7 @@ export default function App() {
                 <select
                   value={sort}
                   onChange={e => setSort(e.target.value)}
-                  className="bg-white text-black dark:bg-zinc-700 dark:text-white rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
+                  className="bg-white text-black rounded-lg px-4 py-3 md:px-6 md:py-4 border border-yellow-400 hover:bg-yellow-300 transition w-full sm:w-auto text-sm md:text-base"
                 >
                   <option value="">Без сортировки</option>
                   {sortVariants.map(o => (
@@ -353,7 +411,7 @@ export default function App() {
                   value={search}
                   onChange={e => setSearch(e.target.value)}
                   placeholder="Поиск по названию или описанию..."
-                  className="flex-1 min-w-[150px] max-w-xs rounded-lg px-4 py-3 border border-yellow-400 dark:bg-zinc-700 dark:text-white bg-white text-black text-sm md:text-base"
+                  className="flex-1 min-w-[150px] max-w-xs rounded-lg px-4 py-3 border border-yellow-400 bg-white text-black text-sm md:text-base"
                 />
                 <button
                   onClick={resetFilters}
@@ -364,36 +422,36 @@ export default function App() {
               </motion.div>
 
               <div className="max-w-7xl mx-auto grid grid-cols-1 xl:grid-cols-[320px_1fr] gap-8 px-4 md:px-8 xl:px-0">
-                {/* Sidebar (можно убрать если не надо, но пусть будет для стиля) */}
+                {/* Sidebar */}
                 <aside className="hidden xl:block sticky top-32 self-start">
-                  <div className="bg-white/10 dark:bg-zinc-800 border border-white/10 p-8 rounded-2xl shadow-2xl">
+                  <div className={`${sidebarBg} border border-yellow-100 p-8 rounded-2xl shadow-2xl`}>
                     <h3 className="text-2xl font-bold text-yellow-400 mb-5">Фильтры</h3>
-                    <label className="block mb-4 text-white/90">
+                    <label className={`block mb-4 ${filterText}`}>
                       Цена от:
                       <input
                         type="number"
                         placeholder="Мин"
                         value={minPrice}
                         onChange={e => setMinPrice(e.target.value)}
-                        className="w-full bg-white/15 px-4 py-3 rounded mt-2 mb-3"
+                        className="w-full bg-white px-4 py-3 rounded mt-2 mb-3 border"
                       />
                     </label>
-                    <label className="block mb-4 text-white/90">
+                    <label className={`block mb-4 ${filterText}`}>
                       Цена до:
                       <input
                         type="number"
                         placeholder="Макс"
                         value={maxPrice}
                         onChange={e => setMaxPrice(e.target.value)}
-                        className="w-full bg-white/15 px-4 py-3 rounded mt-2 mb-3"
+                        className="w-full bg-white px-4 py-3 rounded mt-2 mb-3 border"
                       />
                     </label>
-                    <label className="block mb-4 text-white/90">
+                    <label className={`block mb-4 ${filterText}`}>
                       Звезды:
                       <select
                         value={stars}
                         onChange={e => setStars(e.target.value)}
-                        className="w-full bg-white/15 px-4 py-3 rounded mt-2"
+                        className="w-full bg-white px-4 py-3 rounded mt-2 border"
                       >
                         <option value="">Любые</option>
                         <option value="3">★★★</option>
@@ -401,7 +459,7 @@ export default function App() {
                         <option value="5">★★★★★</option>
                       </select>
                     </label>
-                    <label className="flex items-center gap-3 text-white/90 mb-4">
+                    <label className={`flex items-center gap-3 ${filterText} mb-4`}>
                       <input
                         type="checkbox"
                         checked={onlyWifi}
@@ -410,7 +468,7 @@ export default function App() {
                       />
                       Wi-Fi
                     </label>
-                    <label className="flex items-center gap-3 text-white/90 mb-6">
+                    <label className={`flex items-center gap-3 ${filterText} mb-6`}>
                       <input
                         type="checkbox"
                         checked={onlyBreakfast}
@@ -452,7 +510,7 @@ export default function App() {
                         variants={{ hidden: {}, visible: { transition: { staggerChildren: 0.1 } } }}
                       >
                         {filteredHotels.length === 0 ? (
-                          <div className="col-span-full text-center text-gray-300 text-lg py-12">
+                          <div className="col-span-full text-center text-gray-500 text-lg py-12">
                             Нет подходящих отелей.
                           </div>
                         ) : (
@@ -463,17 +521,27 @@ export default function App() {
                               animate={{ opacity: 1, y: 0, scale: 1 }}
                               transition={{ delay: i * 0.1 }}
                               whileHover={{ y: -12, scale: 1.05, boxShadow: '0 20px 60px #ffbb3355' }}
-                              className="hotel-card bg-white/10 dark:bg-zinc-900 border border-yellow-400/10 rounded-3xl shadow-2xl overflow-hidden hover:border-yellow-400 transition-all relative"
+                              className={`hotel-card ${cardBg} rounded-3xl shadow-2xl overflow-hidden hover:border-yellow-400 transition-all relative`}
                             >
                               {/* ИЗБРАННОЕ */}
                               <button
-                                onClick={e => { e.preventDefault(); toggleFav(h.id); }}
+                                onClick={e => { e.preventDefault(); setFavs(favs.includes(h.id) ? favs.filter(x => x !== h.id) : [...favs, h.id]); }}
                                 className={`absolute top-3 right-4 z-10 text-xl rounded-full p-1 shadow-xl
-                                  ${favs.includes(h.id) ? 'text-pink-400 bg-yellow-200' : 'text-gray-400 bg-black/30 hover:text-yellow-400'}
+                                  ${favs.includes(h.id) ? 'text-pink-400 bg-yellow-200' : 'text-gray-400 bg-black/10 hover:text-yellow-400'}
                                 `}
                                 title={favs.includes(h.id) ? "Убрать из любимых" : "В любимые"}
                               >
                                 {favs.includes(h.id) ? '❤️' : '🤍'}
+                              </button>
+                              {/* СРАВНЕНИЕ */}
+                              <button
+                                onClick={e => { e.preventDefault(); toggleCompare(h.id); }}
+                                className={`absolute top-3 left-4 z-10 text-lg rounded-full p-1 shadow
+                                  ${compare.includes(h.id) ? 'bg-yellow-400 text-black font-bold' : 'bg-yellow-100 text-yellow-500'}
+                                `}
+                                title={compare.includes(h.id) ? "Убрать из сравнения" : "В сравнение"}
+                              >
+                                {compare.includes(h.id) ? '✔' : '≡'}
                               </button>
                               <Link to={`/hotel/${h.id}`}>
                                 <img
@@ -487,16 +555,16 @@ export default function App() {
                                       <span key={j} className="text-yellow-400 text-xl">★</span>
                                     ))}
                                     {[...Array(5 - (h.stars || 4))].map((_, j) => (
-                                      <span key={j} className="text-gray-600 text-xl">★</span>
+                                      <span key={j} className={`${starsGray} text-xl`}>★</span>
                                     ))}
                                   </div>
                                   <h3 className="text-lg md:text-xl font-semibold mb-2">{h.name}</h3>
-                                  <p className="text-gray-200 text-base mb-4 line-clamp-2">{h.description}</p>
+                                  <p className={`${descText} text-base mb-4 line-clamp-2`}>{h.description}</p>
                                   <div className="flex gap-2 mb-4">
-                                    {h.wifi && <span className="bg-blue-600/30 px-3 rounded text-white">📶 Wi-Fi</span>}
-                                    {h.breakfast && <span className="bg-orange-500/30 px-3 rounded text-white">🍳 Завтрак</span>}
+                                    {h.wifi && <span className="bg-blue-600/10 px-3 rounded text-blue-600">📶 Wi-Fi</span>}
+                                    {h.breakfast && <span className="bg-orange-500/10 px-3 rounded text-orange-500">🍳 Завтрак</span>}
                                   </div>
-                                  <span className="block text-lg md:text-xl bg-gradient-to-r from-yellow-400 to-orange-400/90 px-5 py-2 rounded-lg font-extrabold shadow-lg w-fit">
+                                  <span className="block text-lg md:text-xl bg-gradient-to-r from-yellow-400 to-orange-400/90 px-5 py-2 rounded-lg font-extrabold shadow-lg w-fit text-black">
                                     {h.price}$ × {guests} × {nights} = <b>{h.price * guests * nights}$</b>
                                   </span>
                                 </div>
@@ -511,8 +579,8 @@ export default function App() {
               </div>
 
               {/* Мобильная навигация: только НАВЕРХ! */}
-              <div className="fixed bottom-0 left-0 w-full z-[100] sm:hidden">
-                <div className="flex bg-zinc-900/95 border-t border-yellow-400/20 justify-center items-center py-3 px-4 shadow-2xl">
+              <div className={`fixed bottom-0 left-0 w-full z-[100] sm:hidden`}>
+                <div className={`flex ${isDark ? 'bg-zinc-900' : 'bg-white'} border-t border-yellow-200 justify-center items-center py-3 px-4 shadow-2xl`}>
                   <button onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} className="flex flex-col items-center text-yellow-400 font-bold">
                     <span className="text-2xl">⬆️</span>
                     <span className="text-xs">Наверх</span>
@@ -527,7 +595,7 @@ export default function App() {
       </Routes>
 
       {/* FOOTER */}
-      <footer className="py-6 text-center text-gray-400 mt-12">
+      <footer className={`py-6 text-center ${isDark ? 'text-gray-400' : 'text-gray-500'} mt-12`}>
         © 2025 Ниязов Амир — Лучшие отели Таджикистана
       </footer>
 

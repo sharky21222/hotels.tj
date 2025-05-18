@@ -404,3 +404,7 @@ aside button:hover { background: #ffd333; color: #1a1a1a; }
     padding: 0.2rem;
   }
 }
+.rdrCalendarWrapper, .rdrDateDisplay, .rdrMonth, .rdrWeekDays, .rdrDays, .rdrDay, .rdrDayNumber span, .rdrMonthAndYearPickers, .rdrMonthAndYearWrapper, .rdrDateRangePickerWrapper {
+  color: #111 !important;
+  background: #fff !important;
+}
